@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FSAE Fabrication Tracker - Admin Ops</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f5f4;
+            /* Stone-100 */
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d6d3d1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a29e;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            height: 250px;
+            max-height: 300px;
+        }
+
+        /* Modal Transition */
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+
+        body.modal-active {
+            overflow: hidden;
+        }
+
+        /* Status Pills */
+        .status-pill-completed {
+            @apply bg-emerald-100 text-emerald-800 border-emerald-200;
+        }
+
+        .status-pill-progress {
+            @apply bg-amber-100 text-amber-800 border-amber-200;
+        }
+
+        .status-pill-todo {
+            @apply bg-stone-100 text-stone-600 border-stone-200;
+        }
+
+        /* Tab Active State */
+        .tab-active {
+            @apply border-red-500 text-red-600 border-b-2;
+        }
+
+        .tab-inactive {
+            @apply border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300 border-b-2;
+        }
+    </style>
+</head>
+
+<body class="text-stone-800 antialiased min-h-screen flex flex-col">
+
+    <!-- ================== LOGIN VIEW ================== -->
+    <div id="login-view"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-stone-200 bg-opacity-50 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-stone-100">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-stone-800 tracking-tight">FSAE FabTracker</h1>
+                <p class="text-stone-500 mt-2 text-sm">Select your profile to begin</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Team
+                        Member</label>
+                    <select id="user-select"
+                        class="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-stone-400 focus:outline-none transition-all">
+                        <option value="">-- Select Your Name --</option>
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Access
+                        Portal</label>
+                    <div class="flex gap-4">
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="role" value="member" class="peer sr-only" checked>
+                            <div
+                                class="p-3 text-center border border-stone-200 rounded-lg peer-checked:bg-stone-800 peer-checked:text-white transition-all hover:bg-stone-50">
+                                Member
+                            </div>
+                        </label>
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="role" value="lead" class="peer sr-only">
+                            <div
+                                class="p-3 text-center border border-stone-200 rounded-lg peer-checked:bg-stone-800 peer-checked:text-white transition-all hover:bg-stone-50">
+                                Lead
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <button onclick="app.login()"
+                    class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors mt-4">
+                    Enter Shop
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================== APP SHELL ================== -->
+    <div id="app-shell" class="hidden flex-1 flex flex-col">
+
+        <!-- Navigation -->
+        <nav class="bg-white border-b border-stone-200 sticky top-0 z-30 shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center gap-4">
+                        <div class="flex-shrink-0 flex items-center cursor-pointer" onclick="location.reload()">
+                            <span class="text-2xl font-bold text-stone-900 tracking-tighter">FSAE<span
+                                    class="text-red-600">.Track</span></span>
+                        </div>
+                        <div class="hidden md:flex ml-6 space-x-4 items-center">
+                            <span id="nav-portal-label"
+                                class="px-3 py-1 rounded-full text-xs font-medium bg-stone-100 text-stone-600 border border-stone-200">
+                                Member Portal
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="text-right hidden sm:block">
+                            <div id="user-display-name" class="text-sm font-medium text-stone-900">User</div>
+                            <div id="user-display-subteam" class="text-xs text-stone-500">Mechanical</div>
+                        </div>
+                        <button onclick="app.logout()" class="text-stone-400 hover:text-red-600 transition-colors">
+                            <span class="text-sm font-semibold">Logout</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+            <!-- MEMBER DASHBOARD -->
+            <div id="member-dashboard" class="hidden space-y-8">
+                <!-- Welcome / Stats Header -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-100 md:col-span-2">
+                        <h2 class="text-2xl font-bold text-stone-800 mb-2">My Current Fabrication Tasks</h2>
+                        <p class="text-stone-500 mb-6">Track your progress and access drawings.</p>
+                        <div class="w-full bg-stone-100 rounded-full h-4 mb-2 overflow-hidden">
+                            <div id="member-progress-bar"
+                                class="bg-emerald-500 h-4 rounded-full transition-all duration-1000" style="width: 0%">
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-xs font-medium text-stone-500">
+                            <span>0% Complete</span>
+                            <span id="member-progress-text">0 / 0 Tasks Done</span>
+                        </div>
+                    </div>
+                    <div
+                        class="bg-white p-6 rounded-xl shadow-sm border border-stone-100 flex flex-col justify-center items-center text-center">
+                        <span class="text-stone-400 text-sm uppercase tracking-wider font-semibold">Pending Tasks</span>
+                        <span id="member-pending-count" class="text-5xl font-bold text-stone-800 mt-2">0</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold text-stone-800 flex items-center gap-2">
+                                <span class="w-2 h-6 bg-red-600 rounded-full"></span> Assigned to Me
+                            </h3>
+                        </div>
+                        <div id="my-tasks-list" class="space-y-4"></div>
+                        <div id="my-tasks-empty"
+                            class="hidden p-8 text-center bg-stone-50 rounded-xl border border-dashed border-stone-300 text-stone-400">
+                            No tasks currently assigned to you. Check the Open Pool!
+                        </div>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="bg-stone-800 text-white p-4 rounded-t-xl -mb-4 z-10 relative">
+                            <h3 class="text-lg font-bold flex items-center gap-2"><span>&#9935;</span> Open Task Pool
+                            </h3>
+                            <p class="text-stone-400 text-xs">Unassigned tasks ready for pickup</p>
+                        </div>
+                        <div
+                            class="bg-white rounded-xl shadow-sm border border-stone-200 p-4 max-h-[600px] overflow-y-auto">
+                            <div id="pool-tasks-list" class="space-y-3 mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEAD DASHBOARD -->
+            <div id="lead-dashboard" class="hidden space-y-8">
+                <!-- Lead Tabs -->
+                <div class="border-b border-stone-200">
+                    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                        <button onclick="app.switchLeadTab('overview')" id="tab-overview"
+                            class="tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                            Overview & Tracking
+                        </button>
+                        <button onclick="app.switchLeadTab('manage')" id="tab-manage"
+                            class="tab-inactive whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                            Manage Team & Tasks
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- OVERVIEW TAB CONTENT -->
+                <div id="lead-content-overview" class="space-y-8">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-100">
+                            <h4 class="text-sm font-bold text-stone-500 uppercase tracking-wide mb-4">Fabrication Status
+                            </h4>
+                            <div class="chart-container"><canvas id="teamStatusChart"></canvas></div>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-100">
+                            <h4 class="text-sm font-bold text-stone-500 uppercase tracking-wide mb-4">Workload by Member
+                            </h4>
+                            <div class="chart-container"><canvas id="memberWorkloadChart"></canvas></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
+                        <div
+                            class="p-4 border-b border-stone-200 bg-stone-50 flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <h3 class="font-bold text-stone-700">Master Task List</h3>
+                            <select id="lead-filter-subteam" class="text-sm border-stone-300 rounded-md shadow-sm"
+                                onchange="app.renderLeadDashboard()">
+                                <option value="All">All Subteams</option>
+                                <option value="Drivetrain">Drivetrain</option>
+                                <option value="Accumulator">Accumulator</option>
+                                <option value="Cockpit">Cockpit</option>
+                                <option value="Suspension">Suspension</option>
+                            </select>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-stone-200">
+                                <thead class="bg-stone-50">
+                                    <tr>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                                            Part / Task</th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                                            Owner</th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                                            Subteam</th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                                            Status</th>
+                                        <th class="relative px-6 py-3"><span class="sr-only">View</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lead-table-body" class="bg-white divide-y divide-stone-200"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MANAGE TAB CONTENT -->
+                <div id="lead-content-manage" class="hidden space-y-8">
+
+                    <!-- Create Task Section -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-100">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h3 class="text-lg font-bold text-stone-900">Task Management</h3>
+                                <p class="text-sm text-stone-500">Add new parts or fabrication jobs to the tracker.</p>
+                            </div>
+                            <button onclick="app.createNewTask()"
+                                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2">
+                                <span>+</span> Create New Task
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Team Management Section -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-100">
+                        <h3 class="text-lg font-bold text-stone-900 mb-4">Team Roster</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                            <!-- Add Member Form -->
+                            <div class="bg-stone-50 p-4 rounded-lg border border-stone-200">
+                                <h4 class="text-sm font-bold text-stone-700 mb-3">Add New Member</h4>
+                                <div class="space-y-3">
+                                    <input type="text" id="new-member-name" placeholder="Name (e.g. John Doe)"
+                                        class="w-full p-2 border border-stone-300 rounded text-sm focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                    <select id="new-member-subteam"
+                                        class="w-full p-2 border border-stone-300 rounded text-sm bg-white">
+                                        <option value="General">General</option>
+                                        <option value="Drivetrain">Drivetrain</option>
+                                        <option value="Accumulator">Accumulator</option>
+                                        <option value="Cockpit">Cockpit</option>
+                                        <option value="Suspension">Suspension</option>
+                                        <option value="Aero">Aero</option>
+                                    </select>
+                                    <button onclick="app.addMember()"
+                                        class="w-full bg-stone-800 text-white py-2 rounded text-sm font-medium hover:bg-stone-900">Add
+                                        Member</button>
+                                </div>
+                            </div>
+
+                            <!-- Current Roster List -->
+                            <div class="border border-stone-200 rounded-lg overflow-hidden">
+                                <div
+                                    class="bg-stone-100 px-4 py-2 border-b border-stone-200 text-xs font-bold text-stone-500 uppercase">
+                                    Current Members</div>
+                                <div id="member-roster-list" class="max-h-60 overflow-y-auto divide-y divide-stone-100">
+                                    <!-- JS populated -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ================== TASK DETAIL MODAL (VIEW & EDIT) ================== -->
+    <div id="task-modal" class="fixed inset-0 z-[100] hidden overflow-y-auto" aria-labelledby="modal-title"
+        role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-stone-900 bg-opacity-75 transition-opacity" onclick="app.closeModal()"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+            <div
+                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full">
+
+                <!-- Modal Header -->
+                <div class="bg-stone-50 px-4 py-5 sm:px-6 border-b border-stone-200 flex justify-between items-start">
+                    <div id="modal-header-read">
+                        <h3 class="text-lg leading-6 font-medium text-stone-900" id="modal-title">Part Name</h3>
+                        <p class="mt-1 max-w-2xl text-sm text-stone-500" id="modal-subteam">Subteam</p>
+                    </div>
+                    <div id="modal-header-edit" class="hidden w-full mr-4">
+                        <input type="text" id="edit-task-name"
+                            class="w-full font-bold text-lg border-b border-stone-300 focus:outline-none focus:border-red-500 bg-transparent"
+                            placeholder="Task Name">
+                        <div class="flex gap-2 mt-2">
+                            <select id="edit-task-subteam" class="text-xs border rounded p-1">
+                                <option>Drivetrain</option>
+                                <option>Suspension</option>
+                                <option>Accumulator</option>
+                                <option>Cockpit</option>
+                                <option>General</option>
+                            </select>
+                            <input type="text" id="edit-task-id"
+                                class="text-xs border-b border-stone-300 w-24 bg-transparent" placeholder="ID">
+                        </div>
+                    </div>
+                    <button type="button"
+                        class="bg-white rounded-md text-stone-400 hover:text-stone-500 focus:outline-none"
+                        onclick="app.closeModal()">
+                        <span class="text-2xl font-bold">&times;</span>
+                    </button>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="px-4 py-5 sm:p-6 space-y-6">
+
+                    <!-- READ MODE CONTENT -->
+                    <div id="modal-content-read">
+                        <div
+                            class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-stone-50 p-4 rounded-lg mb-6">
+                            <div>
+                                <span class="text-xs font-semibold text-stone-500 uppercase tracking-wide">Status</span>
+                                <div id="modal-status-badge"
+                                    class="mt-1 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium">
+                                    Status</div>
+                            </div>
+                            <div id="modal-actions" class="flex gap-2"></div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <dl class="space-y-3">
+                                <div class="flex justify-between border-b border-stone-100 pb-1">
+                                    <dt class="text-sm font-medium text-stone-500">Material</dt>
+                                    <dd class="text-sm text-stone-900 font-semibold" id="modal-material">-</dd>
+                                </div>
+                                <div class="flex justify-between border-b border-stone-100 pb-1">
+                                    <dt class="text-sm font-medium text-stone-500">Qty</dt>
+                                    <dd class="text-sm text-stone-900 font-semibold" id="modal-qty">-</dd>
+                                </div>
+                                <div class="flex justify-between border-b border-stone-100 pb-1">
+                                    <dt class="text-sm font-medium text-stone-500">Tool/Process</dt>
+                                    <dd class="text-sm text-stone-900 font-semibold" id="modal-tool">-</dd>
+                                </div>
+                                <div class="flex justify-between border-b border-stone-100 pb-1">
+                                    <dt class="text-sm font-medium text-stone-500">Owner</dt>
+                                    <dd class="text-sm text-stone-900 font-semibold" id="modal-owner">-</dd>
+                                </div>
+                            </dl>
+                            <div
+                                class="bg-stone-100 rounded-lg p-4 flex flex-col justify-center items-center text-center border-2 border-dashed border-stone-300">
+                                <span class="text-4xl mb-2">&#128196;</span>
+                                <h4 class="text-sm font-bold text-stone-700">Drawing</h4>
+                                <button
+                                    class="mt-2 bg-white border border-stone-300 text-stone-700 hover:bg-stone-50 px-3 py-1 rounded text-xs shadow-sm">View
+                                    PDF</button>
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <h4 class="text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Notes</h4>
+                            <p id="modal-notes" class="text-sm text-stone-600 bg-stone-50 p-3 rounded-md italic">No
+                                notes.</p>
+                        </div>
+                    </div>
+
+                    <!-- EDIT MODE CONTENT -->
+                    <div id="modal-content-edit" class="hidden space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-500 uppercase">Owner</label>
+                                <select id="edit-task-owner" class="w-full border rounded p-2 mt-1"></select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-500 uppercase">Status</label>
+                                <select id="edit-task-status" class="w-full border rounded p-2 mt-1">
+                                    <option>Not Started</option>
+                                    <option>In Progress</option>
+                                    <option>Completed</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-500 uppercase">Material</label>
+                                <input type="text" id="edit-task-material" class="w-full border rounded p-2 mt-1">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-500 uppercase">Tool</label>
+                                <input type="text" id="edit-task-tool" class="w-full border rounded p-2 mt-1">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-500 uppercase">Quantity</label>
+                                <input type="number" id="edit-task-qty" class="w-full border rounded p-2 mt-1">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-stone-500 uppercase">Notes</label>
+                            <textarea id="edit-task-notes" class="w-full border rounded p-2 mt-1 h-24"></textarea>
+                        </div>
+                        <div class="flex justify-end gap-3 pt-4 border-t border-stone-100">
+                            <button onclick="app.toggleEditMode(false)"
+                                class="text-stone-500 hover:text-stone-700 text-sm font-medium">Cancel</button>
+                            <button onclick="app.saveTaskEdit()"
+                                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-medium shadow-sm">Save
+                                Changes</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================== JAVASCRIPT ================== -->
+    <script>
+        // --- DATA ---
+        const rawData = [
+            { id: "7-DR01-P01", name: "Left Eccentric Tensioner", subteam: "Drivetrain", qty: 1, material: "6061 AL", owner: "Ben", tool: "CNC Mill", status: "Completed", notes: "Design Locked" },
+            { id: "7-DR01-P03", name: "Driven Sprocket", subteam: "Drivetrain", qty: 1, material: "1018 Steel", owner: "Rowan", tool: "Waterjet", status: "Completed", notes: "Connects to sprocket mount" },
+            { id: "7-AC01-P01", name: "Enclosure Floor", subteam: "Accumulator", qty: 1, material: "AL 5052", owner: "Kai-Xing", tool: "OSH Cut", status: "Completed", notes: "Actual bottom of enclosure" },
+            { id: "7-CP01-P01", name: "Nostril Enclosure", subteam: "Cockpit", qty: 1, material: "Polycarbonate", owner: "Mehmet", tool: "Waterjet", status: "Completed", notes: "Bottom of nostril" },
+            { id: "7-FS00-P01", name: "Front Upper A-Arm", subteam: "Suspension", qty: 2, material: "4130 Steel", owner: "Addison", tool: "Weld", status: "Completed", notes: "Jig required" },
+            { id: "7-FS00-P03", name: "Steering Rod", subteam: "Suspension", qty: 2, material: "4130 Steel", owner: "Aditi", tool: "Weld+Mill", status: "In Progress", notes: "Size to fit" },
+            { id: "GEN-001", name: "Clean Shop Floor", subteam: "General", qty: 1, material: "N/A", owner: "", tool: "Broom", status: "Not Started", notes: "Weekly cleaning" },
+        ];
+
+        const app = {
+            currentUser: null,
+            currentRole: 'member',
+            tasks: JSON.parse(JSON.stringify(rawData)),
+            members: [], // {name, subteam}
+            charts: {},
+            currentEditingId: null,
+
+            init: () => {
+                // Initialize members from tasks + defaults
+                const existingOwners = [...new Set(rawData.map(t => t.owner).filter(Boolean))];
+                app.members = existingOwners.map(name => {
+                    // Try to guess subteam from their first task
+                    const task = rawData.find(t => t.owner === name);
+                    return { name: name, subteam: task ? task.subteam : 'General' };
+                });
+
+                app.populateUserSelect();
+            },
+
+            populateUserSelect: () => {
+                const select = document.getElementById('user-select');
+                select.innerHTML = '<option value="">-- Select Your Name --</option>';
+                app.members.sort((a, b) => a.name.localeCompare(b.name)).forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.name;
+                    option.textContent = m.name;
+                    select.appendChild(option);
+                });
+            },
+
+            // --- AUTH ---
+            login: () => {
+                const userSelect = document.getElementById('user-select');
+                const roleRadios = document.getElementsByName('role');
+                const selectedUser = userSelect.value;
+
+                if (!selectedUser) return alert("Please select a team member.");
+
+                app.currentUser = selectedUser;
+                app.currentRole = Array.from(roleRadios).find(r => r.checked).value;
+
+                document.getElementById('login-view').classList.add('hidden');
+                document.getElementById('app-shell').classList.remove('hidden');
+                document.getElementById('user-display-name').textContent = app.currentUser;
+
+                const userObj = app.members.find(m => m.name === app.currentUser);
+                const subteam = userObj ? userObj.subteam : 'General';
+                document.getElementById('user-display-subteam').textContent = app.currentRole === 'lead' ? `${subteam} Lead` : subteam;
+                document.getElementById('nav-portal-label').textContent = app.currentRole === 'lead' ? "Lead Portal" : "Member Portal";
+
+                if (app.currentRole === 'lead') app.renderLeadDashboard();
+                else app.renderMemberDashboard();
+            },
+
+            logout: () => location.reload(),
+
+            // --- MEMBER DASHBOARD ---
+            renderMemberDashboard: () => {
+                document.getElementById('member-dashboard').classList.remove('hidden');
+                document.getElementById('lead-dashboard').classList.add('hidden');
+
+                const myTasks = app.tasks.filter(t => t.owner === app.currentUser);
+                const poolTasks = app.tasks.filter(t => !t.owner);
+
+                // Stats
+                const completed = myTasks.filter(t => t.status === 'Completed').length;
+                const total = myTasks.length;
+                const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+                document.getElementById('member-progress-bar').style.width = `${percent}%`;
+                document.getElementById('member-progress-text').textContent = `${completed} / ${total} Tasks Done`;
+                document.getElementById('member-pending-count').textContent = total - completed;
+
+                // Lists
+                const tasksContainer = document.getElementById('my-tasks-list');
+                tasksContainer.innerHTML = '';
+                if (myTasks.length === 0) document.getElementById('my-tasks-empty').classList.remove('hidden');
+                else {
+                    document.getElementById('my-tasks-empty').classList.add('hidden');
+                    myTasks.forEach(task => tasksContainer.appendChild(app.createTaskCard(task, false)));
+                }
+
+                const poolContainer = document.getElementById('pool-tasks-list');
+                poolContainer.innerHTML = '';
+                poolTasks.forEach(task => poolContainer.appendChild(app.createTaskCard(task, true)));
+            },
+
+            createTaskCard: (task, isPool) => {
+                const card = document.createElement('div');
+                const statusColor = task.status === 'Completed' ? 'bg-emerald-500' : (task.status === 'In Progress' ? 'bg-amber-500' : 'bg-stone-300');
+                const borderClass = isPool ? 'border-l-4 border-l-stone-400' : (task.status === 'Completed' ? 'border-l-4 border-l-emerald-500' : (task.status === 'In Progress' ? 'border-l-4 border-l-amber-500' : 'border-l-4 border-l-stone-300'));
+
+                card.className = `p-4 rounded-lg border border-stone-200 bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer flex justify-between items-center group ${borderClass}`;
+                card.innerHTML = `
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-xs font-bold text-stone-400 uppercase">${task.subteam}</span>
+                            ${!isPool ? `<span class="w-2 h-2 rounded-full ${statusColor}"></span>` : ''}
+                        </div>
+                        <h4 class="text-stone-800 font-semibold group-hover:text-red-600 transition-colors">${task.name}</h4>
+                        <p class="text-xs text-stone-500 mt-1">ID: ${task.id}</p>
+                    </div>
+                    <div>${isPool ? `<button class="text-xs bg-stone-100 hover:bg-stone-200 text-stone-600 px-3 py-1 rounded font-medium transition-colors" onclick="event.stopPropagation(); app.pickupTask('${task.id}')">Pick Up</button>` : `<span class="text-stone-300 group-hover:text-stone-500 text-xl">&rarr;</span>`}</div>
+                `;
+                card.onclick = (e) => { if (e.target.tagName !== 'BUTTON') app.openModal(task.id); };
+                return card;
+            },
+
+            // --- LEAD DASHBOARD ---
+            switchLeadTab: (tabName) => {
+                const overviewTab = document.getElementById('tab-overview');
+                const manageTab = document.getElementById('tab-manage');
+                const contentOverview = document.getElementById('lead-content-overview');
+                const contentManage = document.getElementById('lead-content-manage');
+
+                if (tabName === 'overview') {
+                    overviewTab.className = "tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm";
+                    manageTab.className = "tab-inactive whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm";
+                    contentOverview.classList.remove('hidden');
+                    contentManage.classList.add('hidden');
+                    app.renderLeadDashboard(); // Refresh charts
+                } else {
+                    manageTab.className = "tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm";
+                    overviewTab.className = "tab-inactive whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm";
+                    contentManage.classList.remove('hidden');
+                    contentOverview.classList.add('hidden');
+                    app.renderManageTab();
+                }
+            },
+
+            renderLeadDashboard: () => {
+                document.getElementById('member-dashboard').classList.add('hidden');
+                document.getElementById('lead-dashboard').classList.remove('hidden');
+
+                const filter = document.getElementById('lead-filter-subteam').value;
+                const filteredTasks = filter === 'All' ? app.tasks : app.tasks.filter(t => t.subteam === filter);
+
+                const tbody = document.getElementById('lead-table-body');
+                tbody.innerHTML = '';
+                filteredTasks.forEach(task => {
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-stone-50 transition-colors cursor-pointer";
+                    row.onclick = () => app.openModal(task.id);
+                    const statusClass = task.status === 'Completed' ? 'status-pill-completed' : (task.status === 'In Progress' ? 'status-pill-progress' : 'status-pill-todo');
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-stone-900">${task.name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-stone-500">${task.owner || '<span class="italic text-stone-300">Unassigned</span>'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-stone-500">${task.subteam}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full border ${statusClass}">${task.status}</span></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><span class="text-stone-400 hover:text-red-600">View</span></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                app.renderCharts(filteredTasks);
+            },
+
+            renderManageTab: () => {
+                const list = document.getElementById('member-roster-list');
+                list.innerHTML = '';
+                app.members.forEach(m => {
+                    const item = document.createElement('div');
+                    item.className = "px-4 py-3 bg-white flex justify-between items-center group";
+                    item.innerHTML = `
+                        <div><p class="text-sm font-medium text-stone-900">${m.name}</p><p class="text-xs text-stone-500">${m.subteam}</p></div>
+                        <button onclick="app.removeMember('${m.name}')" class="text-stone-300 hover:text-red-600 text-xs font-semibold hidden group-hover:block">Remove</button>
+                    `;
+                    list.appendChild(item);
+                });
+            },
+
+            renderCharts: (tasks) => {
+                const statusCounts = { 'Completed': 0, 'In Progress': 0, 'Not Started': 0 };
+                tasks.forEach(t => statusCounts[t.status]++);
+
+                const ctxStatus = document.getElementById('teamStatusChart').getContext('2d');
+                if (app.charts.status) app.charts.status.destroy();
+                app.charts.status = new Chart(ctxStatus, {
+                    type: 'doughnut',
+                    data: { labels: Object.keys(statusCounts), datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#10b981', '#f59e0b', '#e7e5e4'], borderWidth: 0 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+                });
+
+                const workload = {};
+                tasks.forEach(t => { if (t.owner) workload[t.owner] = (workload[t.owner] || 0) + 1; });
+                const sortedOwners = Object.entries(workload).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+                const ctxWorkload = document.getElementById('memberWorkloadChart').getContext('2d');
+                if (app.charts.workload) app.charts.workload.destroy();
+                app.charts.workload = new Chart(ctxWorkload, {
+                    type: 'bar',
+                    data: { labels: sortedOwners.map(x => x[0]), datasets: [{ label: 'Tasks', data: sortedOwners.map(x => x[1]), backgroundColor: '#44403c', borderRadius: 4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } } }
+                });
+            },
+
+            // --- ACTIONS ---
+            pickupTask: (id) => {
+                const task = app.tasks.find(t => t.id === id);
+                if (task) { task.owner = app.currentUser; task.status = "Not Started"; app.renderMemberDashboard(); }
+            },
+
+            updateStatus: (id, newStatus) => {
+                const task = app.tasks.find(t => t.id === id);
+                if (task) {
+                    task.status = newStatus;
+                    app.openModal(id);
+                    if (app.currentRole === 'lead') app.renderLeadDashboard(); else app.renderMemberDashboard();
+                }
+            },
+
+            addMember: () => {
+                const nameInput = document.getElementById('new-member-name');
+                const teamSelect = document.getElementById('new-member-subteam');
+                if (!nameInput.value) return;
+
+                app.members.push({ name: nameInput.value, subteam: teamSelect.value });
+                nameInput.value = '';
+                app.renderManageTab();
+                app.populateUserSelect(); // Update login dropdown
+            },
+
+            removeMember: (name) => {
+                if (confirm(`Remove ${name}?`)) {
+                    app.members = app.members.filter(m => m.name !== name);
+                    app.renderManageTab();
+                    app.populateUserSelect();
+                }
+            },
+
+            createNewTask: () => {
+                // Create a temp ID and empty task
+                const newId = `NEW-${Math.floor(Math.random() * 1000)}`;
+                const newTask = { id: newId, name: "New Task", subteam: "General", owner: "", status: "Not Started", material: "", tool: "", qty: 1, notes: "" };
+                app.tasks.push(newTask);
+                app.openModal(newId);
+                app.toggleEditMode(true); // Immediately go to edit mode
+            },
+
+            // --- MODAL ---
+            openModal: (taskId) => {
+                const task = app.tasks.find(t => t.id === taskId);
+                if (!task) return;
+                app.currentEditingId = taskId;
+
+                // Reset View
+                app.toggleEditMode(false);
+
+                // Populate Read View
+                document.getElementById('modal-title').textContent = task.name;
+                document.getElementById('modal-subteam').textContent = `${task.subteam}  •  ${task.id}`;
+                document.getElementById('modal-material').textContent = task.material;
+                document.getElementById('modal-qty').textContent = task.qty;
+                document.getElementById('modal-tool').textContent = task.tool;
+                document.getElementById('modal-owner').textContent = task.owner || "Unassigned";
+                document.getElementById('modal-notes').textContent = task.notes || "No notes.";
+
+                const badge = document.getElementById('modal-status-badge');
+                badge.textContent = task.status;
+                badge.className = `mt-1 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${task.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : (task.status === 'In Progress' ? 'bg-amber-100 text-amber-800' : 'bg-stone-100 text-stone-600')}`;
+
+                const actionsContainer = document.getElementById('modal-actions');
+                actionsContainer.innerHTML = '';
+
+                // Edit Button for Leads
+                if (app.currentRole === 'lead') {
+                    const btnEdit = document.createElement('button');
+                    btnEdit.className = "text-stone-400 hover:text-stone-600 text-sm underline";
+                    btnEdit.textContent = "Edit Details";
+                    btnEdit.onclick = () => app.toggleEditMode(true);
+                    actionsContainer.appendChild(btnEdit);
+                }
+
+                // Status Buttons
+                if (task.owner === app.currentUser || app.currentRole === 'lead') {
+                    if (task.status !== 'Completed') {
+                        const btnFinish = document.createElement('button');
+                        btnFinish.className = "bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-sm";
+                        btnFinish.textContent = "Complete";
+                        btnFinish.onclick = () => app.updateStatus(task.id, 'Completed');
+                        actionsContainer.appendChild(btnFinish);
+                    }
+                    if (task.status === 'Not Started') {
+                        const btnStart = document.createElement('button');
+                        btnStart.className = "bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded text-sm";
+                        btnStart.textContent = "Start";
+                        btnStart.onclick = () => app.updateStatus(task.id, 'In Progress');
+                        actionsContainer.appendChild(btnStart);
+                    }
+                }
+
+                document.getElementById('task-modal').classList.remove('hidden');
+                document.body.classList.add('modal-active');
+            },
+
+            toggleEditMode: (active) => {
+                const task = app.tasks.find(t => t.id === app.currentEditingId);
+                const readHeader = document.getElementById('modal-header-read');
+                const editHeader = document.getElementById('modal-header-edit');
+                const readContent = document.getElementById('modal-content-read');
+                const editContent = document.getElementById('modal-content-edit');
+
+                if (active) {
+                    readHeader.classList.add('hidden');
+                    editHeader.classList.remove('hidden');
+                    readContent.classList.add('hidden');
+                    editContent.classList.remove('hidden');
+
+                    // Populate Inputs
+                    document.getElementById('edit-task-name').value = task.name;
+                    document.getElementById('edit-task-subteam').value = task.subteam;
+                    document.getElementById('edit-task-id').value = task.id;
+                    document.getElementById('edit-task-status').value = task.status;
+                    document.getElementById('edit-task-material').value = task.material;
+                    document.getElementById('edit-task-tool').value = task.tool;
+                    document.getElementById('edit-task-qty').value = task.qty;
+                    document.getElementById('edit-task-notes').value = task.notes;
+
+                    // Owner Dropdown
+                    const ownerSelect = document.getElementById('edit-task-owner');
+                    ownerSelect.innerHTML = '<option value="">Unassigned</option>';
+                    app.members.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m.name;
+                        opt.textContent = m.name;
+                        if (m.name === task.owner) opt.selected = true;
+                        ownerSelect.appendChild(opt);
+                    });
+
+                } else {
+                    readHeader.classList.remove('hidden');
+                    editHeader.classList.add('hidden');
+                    readContent.classList.remove('hidden');
+                    editContent.classList.add('hidden');
+                }
+            },
+
+            saveTaskEdit: () => {
+                const taskIndex = app.tasks.findIndex(t => t.id === app.currentEditingId);
+                if (taskIndex > -1) {
+                    const t = app.tasks[taskIndex];
+                    t.name = document.getElementById('edit-task-name').value;
+                    t.subteam = document.getElementById('edit-task-subteam').value;
+                    t.id = document.getElementById('edit-task-id').value; // Potentially dangerous changing ID, but allowed for simplicity
+                    t.owner = document.getElementById('edit-task-owner').value;
+                    t.status = document.getElementById('edit-task-status').value;
+                    t.material = document.getElementById('edit-task-material').value;
+                    t.tool = document.getElementById('edit-task-tool').value;
+                    t.qty = document.getElementById('edit-task-qty').value;
+                    t.notes = document.getElementById('edit-task-notes').value;
+
+                    // If ID changed, update currentEditingId so modal stays consistent
+                    app.currentEditingId = t.id;
+
+                    app.openModal(t.id); // Reload modal read view
+                    if (app.currentRole === 'lead') app.renderLeadDashboard();
+                }
+            },
+
+            closeModal: () => {
+                document.getElementById('task-modal').classList.add('hidden');
+                document.body.classList.remove('modal-active');
+            }
+        };
+
+        window.onload = app.init;
+    </script>
+</body>
+
+</html>

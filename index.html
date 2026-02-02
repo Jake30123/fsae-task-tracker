@@ -319,6 +319,18 @@
                     </div>
 
                     <div class="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
+                        <div class="bg-stone-800 text-white p-4">
+                            <h3 class="text-lg font-bold flex items-center gap-2"><span>&#9935;</span> Open Task Pool
+                            </h3>
+                            <p class="text-stone-400 text-xs">Unassigned tasks ready for pickup</p>
+                        </div>
+                        <div class="p-4 bg-stone-50 max-h-[400px] overflow-y-auto">
+                            <div id="lead-pool-tasks-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
                         <div
                             class="p-4 border-b border-stone-200 bg-stone-50 flex flex-col sm:flex-row justify-between items-center gap-4">
                             <h3 class="font-bold text-stone-700">Master Task List</h3>
@@ -345,7 +357,7 @@
                                             Owner</th>
                                         <th
                                             class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
-                                            Subteam</th>
+                                            Designed By</th>
                                         <th
                                             class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
                                             Status</th>
@@ -489,6 +501,10 @@
                                     <dd class="text-sm text-stone-900 font-semibold" id="modal-tool">-</dd>
                                 </div>
                                 <div class="flex justify-between border-b border-stone-100 pb-1">
+                                    <dt class="text-sm font-medium text-stone-500">Designed By</dt>
+                                    <dd class="text-sm text-stone-900 font-semibold" id="modal-designer">-</dd>
+                                </div>
+                                <div class="flex justify-between border-b border-stone-100 pb-1">
                                     <dt class="text-sm font-medium text-stone-500">Owner</dt>
                                     <dd class="text-sm text-stone-900 font-semibold" id="modal-owner">-</dd>
                                 </div>
@@ -520,6 +536,10 @@
                             <div>
                                 <label class="block text-xs font-bold text-stone-500 uppercase">Owner</label>
                                 <select id="edit-task-owner" class="w-full border rounded p-2 mt-1"></select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-500 uppercase">Designed By</label>
+                                <select id="edit-task-designer" class="w-full border rounded p-2 mt-1"></select>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-stone-500 uppercase">Status</label>
@@ -1115,12 +1135,24 @@
                 }
 
                 const filter = filterSelect.value;
-                // Aggressive filtering
                 let filteredTasks = app.tasks;
+
+                // 1. FILTERING LOGIC (Updated to include owned tasks)
                 if (filter !== 'All') {
-                    filteredTasks = app.tasks.filter(t => t.subteam && t.subteam.trim().toLowerCase() === filter.toLowerCase());
+                    // Identify members of the current subteam
+                    const subteamMembers = app.members
+                        .filter(m => m.subteam && m.subteam.trim().toLowerCase() === filter.toLowerCase())
+                        .map(m => m.name);
+
+                    filteredTasks = app.tasks.filter(t => {
+                        const matchesSubteam = t.subteam && t.subteam.trim().toLowerCase() === filter.toLowerCase();
+                        // Also include tasks owned by members of this subteam (even if task is from another subteam)
+                        const ownedByMember = t.owner && subteamMembers.includes(t.owner);
+                        return matchesSubteam || ownedByMember;
+                    });
                 }
 
+                // 2. RENDER MASTER LIST
                 const tbody = document.getElementById('lead-table-body');
                 tbody.innerHTML = '';
                 filteredTasks.forEach(task => {
@@ -1128,16 +1160,33 @@
                     row.className = "hover:bg-stone-50 transition-colors cursor-pointer";
                     row.onclick = () => app.openModal(task.id);
                     const statusClass = task.status === 'Completed' ? 'status-pill-completed' : (task.status === 'In Progress' ? 'status-pill-progress' : 'status-pill-todo');
+
                     row.innerHTML = `
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-stone-900">${task.name}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-stone-500">${task.owner || '<span class="italic text-stone-300">Unassigned</span>'}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-stone-500">${task.subteam}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-stone-500">${task.designer || '<span class="italic text-stone-300">Unknown</span>'}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full border ${statusClass}">${task.status}</span></td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><span class="text-stone-400 hover:text-red-600">View</span></td>
                     `;
                     tbody.appendChild(row);
                 });
+
                 app.renderCharts(filteredTasks);
+
+                // 3. RENDER OPEN TASK POOL (New)
+                const poolContainer = document.getElementById('lead-pool-tasks-list');
+                if (poolContainer) {
+                    poolContainer.innerHTML = '';
+                    const poolTasks = app.tasks.filter(t => !t.owner); // Show all open tasks
+
+                    if (poolTasks.length === 0) {
+                        poolContainer.innerHTML = '<p class="text-stone-400 col-span-3 text-center italic py-4">No open tasks available.</p>';
+                    } else {
+                        poolTasks.forEach(task => {
+                            poolContainer.appendChild(app.createTaskCard(task, true));
+                        });
+                    }
+                }
             },
 
             renderManageTab: () => {
@@ -1253,7 +1302,7 @@
                 }
 
                 const workload = {};
-                tasks.forEach(t => { if (t.owner) workload[t.owner] = (workload[t.owner] || 0) + 1; });
+                app.tasks.forEach(t => { if (t.owner) workload[t.owner] = (workload[t.owner] || 0) + 1; });
 
                 let sortedOwners = Object.entries(workload).sort((a, b) => b[1] - a[1]);
 
@@ -1346,12 +1395,13 @@
                     name: "New Task",
                     subteam: defaultSubteam,
                     owner: app.currentUser || "", // Default to creator
+                    designer: "", // New field
                     status: "Not Started",
                     material: "",
                     tool: "",
                     qty: 1,
                     notes: "",
-                    drawingUrl: "" // New field
+                    drawingUrl: ""
                 };
 
                 db.collection("tasks").add(newTask).then((docRef) => {
@@ -1361,11 +1411,7 @@
             },
 
             saveTaskEdit: () => {
-                const id = document.getElementById('edit-task-id').value; // Might be hidden or we use currentEditingId
-                // We don't have an input for ID in the edit form usually (it was read only in read mode), 
-                // but let's see. In the original code `createNewTask` used a random ID.
-                // Here we use the firestore ID.
-
+                const id = document.getElementById('edit-task-id').value;
                 const targetId = app.currentEditingId;
                 if (!targetId) return;
 
@@ -1373,6 +1419,7 @@
                     name: document.getElementById('edit-task-name').value,
                     subteam: document.getElementById('edit-task-subteam').value,
                     owner: document.getElementById('edit-task-owner').value,
+                    designer: document.getElementById('edit-task-designer').value, // New field
                     status: document.getElementById('edit-task-status').value,
                     material: document.getElementById('edit-task-material').value,
                     tool: document.getElementById('edit-task-tool').value,
@@ -1403,6 +1450,7 @@
                 document.getElementById('modal-qty').textContent = task.qty;
                 document.getElementById('modal-tool').textContent = task.tool;
                 document.getElementById('modal-owner').textContent = task.owner || "Unassigned";
+                document.getElementById('modal-designer').textContent = task.designer || "Unknown"; // New field
                 document.getElementById('modal-notes').textContent = task.notes || "No notes.";
 
                 // Due Date with overdue highlighting
@@ -1453,15 +1501,10 @@
                     statusContainer.innerHTML = `<span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold uppercase tracking-wide ${badgeClass}">${task.status}</span>`;
                 }
 
-                // DRAWING BUTTON LOGIC is now handled by the updated openModal code above
-
-
-
                 // Show modal
                 document.getElementById('task-modal').classList.remove('hidden');
                 document.body.classList.add('modal-active');
 
-                // Set Up Actions
                 // Set Up Actions
                 const actionsContainer = document.getElementById('modal-actions');
                 actionsContainer.innerHTML = '';
@@ -1530,6 +1573,17 @@
                             opt.textContent = m.name;
                             if (m.name === task.owner) opt.selected = true;
                             ownerSelect.appendChild(opt);
+                        });
+
+                        // Populate designer select (NEW)
+                        const designerSelect = document.getElementById('edit-task-designer');
+                        designerSelect.innerHTML = '<option value="">-- Unknown --</option>';
+                        app.members.forEach(m => {
+                            const opt = document.createElement('option');
+                            opt.value = m.name;
+                            opt.textContent = m.name;
+                            if (m.name === task.designer) opt.selected = true;
+                            designerSelect.appendChild(opt);
                         });
 
                         document.getElementById('edit-task-status').value = task.status;

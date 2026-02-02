@@ -480,6 +480,10 @@
                                     <dt class="text-sm font-medium text-stone-500">Owner</dt>
                                     <dd class="text-sm text-stone-900 font-semibold" id="modal-owner">-</dd>
                                 </div>
+                                <div class="flex justify-between border-b border-stone-100 pb-1">
+                                    <dt class="text-sm font-medium text-stone-500">Due Date</dt>
+                                    <dd class="text-sm font-semibold" id="modal-due-date">-</dd>
+                                </div>
                             </dl>
                             <div id="drawing-section"
                                 class="bg-stone-100 rounded-lg p-4 flex flex-col justify-center items-center text-center border-2 border-dashed border-stone-300">
@@ -524,6 +528,10 @@
                             <div>
                                 <label class="block text-xs font-bold text-stone-500 uppercase">Quantity</label>
                                 <input type="number" id="edit-task-qty" class="w-full border rounded p-2 mt-1">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-500 uppercase">Due Date</label>
+                                <input type="date" id="edit-task-due" class="w-full border rounded p-2 mt-1">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-stone-500 uppercase">Google Drive
@@ -992,7 +1000,42 @@
             createTaskCard: (task, isPool) => {
                 const card = document.createElement('div');
                 const statusColor = task.status === 'Completed' ? 'bg-emerald-500' : (task.status === 'In Progress' ? 'bg-amber-500' : 'bg-stone-300');
-                const borderClass = isPool ? 'border-l-4 border-l-stone-400' : (task.status === 'Completed' ? 'border-l-4 border-l-emerald-500' : (task.status === 'In Progress' ? 'border-l-4 border-l-amber-500' : 'border-l-4 border-l-stone-300'));
+
+                // Check if task is overdue
+                let isOverdue = false;
+                let dueDateDisplay = '';
+                if (task.dueDate && task.status !== 'Completed') {
+                    const dueDate = new Date(task.dueDate);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    isOverdue = dueDate < today;
+                    const formatted = dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    dueDateDisplay = `<span class="text-xs ${isOverdue ? 'text-red-600 font-bold' : 'text-stone-400'}">Due: ${formatted}</span>`;
+                }
+
+                // Border color: overdue takes priority
+                let borderClass;
+                if (isPool) {
+                    borderClass = 'border-l-4 border-l-stone-400';
+                } else if (isOverdue) {
+                    borderClass = 'border-l-4 border-l-red-500';
+                } else if (task.status === 'Completed') {
+                    borderClass = 'border-l-4 border-l-emerald-500';
+                } else if (task.status === 'In Progress') {
+                    borderClass = 'border-l-4 border-l-amber-500';
+                } else {
+                    borderClass = 'border-l-4 border-l-stone-300';
+                }
+
+                // Quick status toggle for owned tasks
+                const statusToggle = !isPool ? `
+                    <select onchange="event.stopPropagation(); app.updateStatus('${task.id}', this.value)" 
+                            class="text-xs border border-stone-200 rounded px-2 py-1 bg-white cursor-pointer focus:ring-2 focus:ring-red-500 focus:outline-none">
+                        <option value="Not Started" ${task.status === 'Not Started' ? 'selected' : ''}>Not Started</option>
+                        <option value="In Progress" ${task.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                        <option value="Completed" ${task.status === 'Completed' ? 'selected' : ''}>Completed</option>
+                    </select>
+                ` : '';
 
                 card.className = `p-4 rounded-lg border border-stone-200 bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer flex justify-between items-center group ${borderClass}`;
                 card.innerHTML = `
@@ -1000,13 +1043,16 @@
                         <div class="flex items-center gap-2 mb-1">
                             <span class="text-xs font-bold text-stone-400 uppercase">${task.subteam}</span>
                             ${!isPool ? `<span class="w-2 h-2 rounded-full ${statusColor}"></span>` : ''}
+                            ${dueDateDisplay}
                         </div>
                         <h4 class="text-stone-800 font-semibold group-hover:text-red-600 transition-colors">${task.name}</h4>
-                        <p class="text-xs text-stone-500 mt-1">ID: ${task.id || 'Pending'}</p>
                     </div>
-                    <div>${isPool ? `<button class="text-xs bg-stone-100 hover:bg-stone-200 text-stone-600 px-3 py-1 rounded font-medium transition-colors" onclick="event.stopPropagation(); app.pickupTask('${task.id}')">Pick Up</button>` : `<button class="text-xs bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1 rounded font-medium transition-colors" onclick="event.stopPropagation(); app.dropTask('${task.id}')">Drop</button>`}</div>
+                    <div class="flex items-center gap-2">
+                        ${statusToggle}
+                        ${isPool ? `<button class="text-xs bg-stone-100 hover:bg-stone-200 text-stone-600 px-3 py-1 rounded font-medium transition-colors" onclick="event.stopPropagation(); app.pickupTask('${task.id}')">Pick Up</button>` : `<button class="text-xs bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1 rounded font-medium transition-colors" onclick="event.stopPropagation(); app.dropTask('${task.id}')">Drop</button>`}
+                    </div>
                 `;
-                card.onclick = (e) => { if (e.target.tagName !== 'BUTTON') app.openModal(task.id); };
+                card.onclick = (e) => { if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'SELECT') app.openModal(task.id); };
                 return card;
             },
 
@@ -1320,7 +1366,8 @@
                     tool: document.getElementById('edit-task-tool').value,
                     qty: Number(document.getElementById('edit-task-qty').value),
                     notes: document.getElementById('edit-task-notes').value,
-                    drawingUrl: document.getElementById('edit-task-link').value
+                    drawingUrl: document.getElementById('edit-task-link').value,
+                    dueDate: document.getElementById('edit-task-due').value || null
                 };
 
                 db.collection("tasks").doc(targetId).update(updates).then(() => {
@@ -1345,6 +1392,21 @@
                 document.getElementById('modal-tool').textContent = task.tool;
                 document.getElementById('modal-owner').textContent = task.owner || "Unassigned";
                 document.getElementById('modal-notes').textContent = task.notes || "No notes.";
+
+                // Due Date with overdue highlighting
+                const dueDateEl = document.getElementById('modal-due-date');
+                if (task.dueDate) {
+                    const dueDate = new Date(task.dueDate);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const isOverdue = dueDate < today && task.status !== 'Completed';
+                    const formatted = dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    dueDateEl.textContent = formatted;
+                    dueDateEl.className = isOverdue ? 'text-sm font-semibold text-red-600' : 'text-sm font-semibold text-stone-900';
+                } else {
+                    dueDateEl.textContent = 'Not set';
+                    dueDateEl.className = 'text-sm font-semibold text-stone-400';
+                }
 
                 // Update PDF display
                 const viewPdfBtn = document.getElementById('view-pdf-btn');
@@ -1464,6 +1526,7 @@
                         document.getElementById('edit-task-qty').value = task.qty;
                         document.getElementById('edit-task-notes').value = task.notes;
                         document.getElementById('edit-task-link').value = task.drawingUrl || "";
+                        document.getElementById('edit-task-due').value = task.dueDate || "";
                     }
                 } else {
                     readContent.classList.remove('hidden');

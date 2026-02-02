@@ -533,23 +533,31 @@
                     querySnapshot.forEach((doc) => {
                         tasks.push({ id: doc.id, ...doc.data() });
                     });
-                    app.tasks = tasks;
 
-                    // Update derived members list
-                    app.updateMembersFromTasks();
-
-                    // Refresh UI if logged in
-                    if (app.currentUser) {
-                        app.populateUserSelect(); // Refresh dropdown in case new people appeared
-                        // Restore dropdown selection if it existed
-                        const userSelect = document.getElementById('user-select');
-                        if (userSelect && !app.currentUser) userSelect.value = "";
-                        else if (userSelect) userSelect.value = app.currentUser;
-
-                        if (app.currentRole === 'lead') app.renderLeadDashboard();
-                        else app.renderMemberDashboard();
+                    // SEEDING LOGIC: If database is empty, add sample data so users can log in
+                    if (tasks.length === 0 && !app.hasSeeded) {
+                        app.hasSeeded = true; // Prevent infinite loop if something goes wrong
+                        if (confirm("Database is empty. Initialize with sample data?")) {
+                            app.seedDatabase();
+                        } else {
+                            // Allow manual entry if they say no
+                            app.allowManualLogin();
+                        }
                     } else {
-                        app.populateUserSelect();
+                        app.tasks = tasks;
+                        app.updateMembersFromTasks();
+
+                        if (app.currentUser) {
+                            app.populateUserSelect();
+                            const userSelect = document.getElementById('user-select');
+                            if (userSelect && !app.currentUser) userSelect.value = "";
+                            else if (userSelect) userSelect.value = app.currentUser;
+
+                            if (app.currentRole === 'lead') app.renderLeadDashboard();
+                            else app.renderMemberDashboard();
+                        } else {
+                            app.populateUserSelect();
+                        }
                     }
                 }, (error) => {
                     console.error("Error getting tasks: ", error);
@@ -557,6 +565,36 @@
                         alert("Firebase Permission Denied.\nMake sure you created the database in 'Test Mode'.");
                     }
                 });
+            },
+
+            hasSeeded: false, // Flag to track seeding attempt
+
+            seedDatabase: () => {
+                const sampleData = [
+                    { name: "Left Eccentric Tensioner", subteam: "Drivetrain", qty: 1, material: "6061 AL", owner: "Ben", tool: "CNC Mill", status: "Completed", notes: "Design Locked" },
+                    { name: "Driven Sprocket", subteam: "Drivetrain", qty: 1, material: "1018 Steel", owner: "Rowan", tool: "Waterjet", status: "Completed", notes: "Connects to sprocket mount" },
+                    { name: "Enclosure Floor", subteam: "Accumulator", qty: 1, material: "AL 5052", owner: "Kai-Xing", tool: "OSH Cut", status: "Completed", notes: "Actual bottom of enclosure" },
+                    { name: "Nostril Enclosure", subteam: "Cockpit", qty: 1, material: "Polycarbonate", owner: "Mehmet", tool: "Waterjet", status: "Completed", notes: "Bottom of nostril" },
+                    { name: "Front Upper A-Arm", subteam: "Suspension", qty: 2, material: "4130 Steel", owner: "Addison", tool: "Weld", status: "Completed", notes: "Jig required" },
+                    { name: "Steering Rod", subteam: "Suspension", qty: 2, material: "4130 Steel", owner: "Aditi", tool: "Weld+Mill", status: "In Progress", notes: "Size to fit" },
+                    { name: "Clean Shop Floor", subteam: "General", qty: 1, material: "N/A", owner: "Team", tool: "Broom", status: "Not Started", notes: "Weekly cleaning" }
+                ];
+
+                const batch = db.batch();
+                sampleData.forEach(data => {
+                    const docRef = db.collection("tasks").doc();
+                    batch.set(docRef, data);
+                });
+
+                batch.commit().then(() => {
+                    console.log("Database seeded!");
+                }).catch(err => console.error("Error seeding: ", err));
+            },
+
+            allowManualLogin: () => {
+                // If user declines seeding, add a temporary 'Admin' user so they aren't locked out
+                app.members = [{ name: "Admin", subteam: "General" }];
+                app.populateUserSelect();
             },
 
             updateMembersFromTasks: () => {

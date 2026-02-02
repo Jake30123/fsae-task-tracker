@@ -142,8 +142,10 @@
         class="fixed inset-0 z-50 flex items-center justify-center bg-oem-blue bg-opacity-10 backdrop-blur-sm">
         <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
             <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-black tracking-tight font-heading">OEM Fabrication Tracker</h1>
-                <p class="text-gray-500 mt-2 text-sm font-mono text-oem-blue">Select your profile to begin</p>
+                <img src="oem-logo.png" alt="Olin Electric Motorsports" class="w-full max-w-xs mx-auto mb-6">
+                <div class="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-4"></div>
+                <p class="text-lg font-bold text-black tracking-tight font-heading">Fabrication Tracker</p>
+                <p class="text-gray-400 mt-1 text-xs font-mono">Select your profile to begin</p>
             </div>
 
             <div class="space-y-4">
@@ -177,7 +179,8 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16">
                     <div class="flex items-center gap-4">
-                        <div class="flex-shrink-0 flex items-center cursor-pointer" onclick="location.reload()">
+                        <div class="flex-shrink-0 flex items-center cursor-pointer gap-3" onclick="location.reload()">
+                            <img src="oem-logo.png" alt="OEM Logo" class="h-10 w-auto hidden sm:block">
                             <span class="text-lg sm:text-2xl font-bold text-black tracking-tighter font-heading">OEM
                                 <span class="text-oem-blue">Fabrication Tracker</span></span>
                         </div>
@@ -200,6 +203,8 @@
                 </div>
             </div>
         </nav>
+
+
 
         <!-- Main Content Area -->
         <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1036,7 +1041,7 @@
             // --- AUTH ---
             login: () => {
                 const userInput = document.getElementById('user-input'); // Changed from select
-                const roleRadios = document.getElementsByName('role');
+
                 const selectedUserRaw = userInput.value.trim();
 
                 if (!selectedUserRaw) return alert("Please enter a team member name.");
@@ -1139,7 +1144,7 @@
                 poolContainer.innerHTML = '';
 
                 if (filteredPoolTasks.length === 0) {
-                    poolContainer.innerHTML = '<p class="text-gray-400 text-center italic py-4 font-mono">No open filter tasks.</p>';
+                    poolContainer.innerHTML = '<p class="text-gray-400 text-center italic py-4 font-mono">No open tasks match this filter.</p>';
                 } else {
                     filteredPoolTasks.forEach(task => poolContainer.appendChild(app.createTaskCard(task, true)));
                 }
@@ -1153,7 +1158,8 @@
                 let isOverdue = false;
                 let dueDateDisplay = '';
                 if (task.dueDate && task.status !== 'Completed') {
-                    const dueDate = new Date(task.dueDate);
+                    const dateParts = task.dueDate.split('-');
+                    const dueDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     isOverdue = dueDate < today;
@@ -1212,14 +1218,14 @@
                 const contentManage = document.getElementById('lead-content-manage');
 
                 if (tabName === 'overview') {
-                    overviewTab.className = "tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm";
-                    manageTab.className = "tab-inactive whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm";
+                    overviewTab.className = "tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm font-heading";
+                    manageTab.className = "tab-inactive whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm font-heading";
                     contentOverview.classList.remove('hidden');
                     contentManage.classList.add('hidden');
                     app.renderLeadDashboard(); // Refresh charts
                 } else {
-                    manageTab.className = "tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm";
-                    overviewTab.className = "tab-inactive whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm";
+                    manageTab.className = "tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm font-heading";
+                    overviewTab.className = "tab-inactive whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm font-heading";
                     contentManage.classList.remove('hidden');
                     contentOverview.classList.add('hidden');
                     app.renderManageTab();
@@ -1310,8 +1316,7 @@
                     }
                 }
 
-                // 3. RENDER OPEN TASK POOL (New)
-                // 3. RENDER OPEN TASK POOL (New)
+                // 3. RENDER OPEN TASK POOL
                 const poolContainer = document.getElementById('lead-pool-tasks-list');
 
                 // --- NEW ISOLATED FILTER LOGIC FOR POOL ---

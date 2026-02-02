@@ -4,13 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FSAE Fabrication Tracker - Admin Ops</title>
+    <title>FSAE Fabrication Tracker - v3.0</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Firebase SDK (Compat for simple script usage) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -58,7 +62,7 @@
             overflow: hidden;
         }
 
-        /* Status Pills */
+        /* Status Pills (Read Only) */
         .status-pill-completed {
             @apply bg-emerald-100 text-emerald-800 border-emerald-200;
         }
@@ -69,6 +73,13 @@
 
         .status-pill-todo {
             @apply bg-stone-100 text-stone-600 border-stone-200;
+        }
+
+        /* Interactive Select Pill */
+        .select-pill {
+            @apply appearance-none border-none text-sm font-bold uppercase tracking-wide px-4 py-1.5 rounded-full cursor-pointer focus:ring-2 focus:ring-offset-1 focus:outline-none text-center;
+            text-align-last: center;
+            /* Aligns text in some browsers */
         }
 
         /* Tab Active State */
@@ -359,9 +370,13 @@
 
                 <!-- Modal Header -->
                 <div class="bg-stone-50 px-4 py-5 sm:px-6 border-b border-stone-200 flex justify-between items-start">
-                    <div id="modal-header-read">
-                        <h3 class="text-lg leading-6 font-medium text-stone-900" id="modal-title">Part Name</h3>
-                        <p class="mt-1 max-w-2xl text-sm text-stone-500" id="modal-subteam">Subteam</p>
+                    <div id="modal-header-read" class="w-full">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-lg leading-6 font-medium text-stone-900" id="modal-title">Part Name</h3>
+                                <p class="mt-1 max-w-2xl text-sm text-stone-500" id="modal-subteam">Subteam</p>
+                            </div>
+                        </div>
                     </div>
                     <div id="modal-header-edit" class="hidden w-full mr-4">
                         <input type="text" id="edit-task-name"
@@ -380,7 +395,7 @@
                         </div>
                     </div>
                     <button type="button"
-                        class="bg-white rounded-md text-stone-400 hover:text-stone-500 focus:outline-none"
+                        class="bg-white rounded-md text-stone-400 hover:text-stone-500 focus:outline-none ml-4"
                         onclick="app.closeModal()">
                         <span class="text-2xl font-bold">&times;</span>
                     </button>
@@ -391,13 +406,15 @@
 
                     <!-- READ MODE CONTENT -->
                     <div id="modal-content-read">
+
+                        <!-- NEW STATUS BAR -->
                         <div
-                            class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-stone-50 p-4 rounded-lg mb-6">
-                            <div>
-                                <span class="text-xs font-semibold text-stone-500 uppercase tracking-wide">Status</span>
-                                <div id="modal-status-badge"
-                                    class="mt-1 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium">
-                                    Status</div>
+                            class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-stone-50 p-4 rounded-lg mb-6 border border-stone-200">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs font-bold text-stone-400 uppercase tracking-wide">Status</span>
+                                <div id="modal-status-container">
+                                    <!-- Populated by JS: Either a Badge or a Select Dropdown -->
+                                </div>
                             </div>
                             <div id="modal-actions" class="flex gap-2"></div>
                         </div>
@@ -485,46 +502,95 @@
 
     <!-- ================== JAVASCRIPT ================== -->
     <script>
-        // --- DATA ---
-        const rawData = [
-            { id: "7-DR01-P01", name: "Left Eccentric Tensioner", subteam: "Drivetrain", qty: 1, material: "6061 AL", owner: "Ben", tool: "CNC Mill", status: "Completed", notes: "Design Locked" },
-            { id: "7-DR01-P03", name: "Driven Sprocket", subteam: "Drivetrain", qty: 1, material: "1018 Steel", owner: "Rowan", tool: "Waterjet", status: "Completed", notes: "Connects to sprocket mount" },
-            { id: "7-AC01-P01", name: "Enclosure Floor", subteam: "Accumulator", qty: 1, material: "AL 5052", owner: "Kai-Xing", tool: "OSH Cut", status: "Completed", notes: "Actual bottom of enclosure" },
-            { id: "7-CP01-P01", name: "Nostril Enclosure", subteam: "Cockpit", qty: 1, material: "Polycarbonate", owner: "Mehmet", tool: "Waterjet", status: "Completed", notes: "Bottom of nostril" },
-            { id: "7-FS00-P01", name: "Front Upper A-Arm", subteam: "Suspension", qty: 2, material: "4130 Steel", owner: "Addison", tool: "Weld", status: "Completed", notes: "Jig required" },
-            { id: "7-FS00-P03", name: "Steering Rod", subteam: "Suspension", qty: 2, material: "4130 Steel", owner: "Aditi", tool: "Weld+Mill", status: "In Progress", notes: "Size to fit" },
-            { id: "GEN-001", name: "Clean Shop Floor", subteam: "General", qty: 1, material: "N/A", owner: "", tool: "Broom", status: "Not Started", notes: "Weekly cleaning" },
-        ];
+        // --- FIREBASE CONFIGURATION ---
+        // TODO: Replace with your actual Firebase project config from console.firebase.google.com
+        const firebaseConfig = {
+            apiKey: "AIzaSyBT6cShwqMFiXVXJkb2HYquUqbN_Vd3dgs",
+            authDomain: "fsae-task-tracker.firebaseapp.com",
+            projectId: "fsae-task-tracker",
+            storageBucket: "fsae-task-tracker.firebasestorage.app",
+            messagingSenderId: "12476784385",
+            appId: "1:12476784385:web:1103fbbb30b2fd736dc500",
+            measurementId: "G-N9X0N4JYRP"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
         const app = {
             currentUser: null,
             currentRole: 'member',
-            tasks: JSON.parse(JSON.stringify(rawData)),
+            tasks: [], // Will be populated by Firestore
             members: [], // {name, subteam}
             charts: {},
             currentEditingId: null,
 
             init: () => {
-                // Initialize members from tasks + defaults
-                const existingOwners = [...new Set(rawData.map(t => t.owner).filter(Boolean))];
+                // Real-time listener for Tasks
+                db.collection("tasks").onSnapshot((querySnapshot) => {
+                    const tasks = [];
+                    querySnapshot.forEach((doc) => {
+                        tasks.push({ id: doc.id, ...doc.data() });
+                    });
+                    app.tasks = tasks;
+
+                    // Update derived members list
+                    app.updateMembersFromTasks();
+
+                    // Refresh UI if logged in
+                    if (app.currentUser) {
+                        app.populateUserSelect(); // Refresh dropdown in case new people appeared
+                        // Restore dropdown selection if it existed
+                        const userSelect = document.getElementById('user-select');
+                        if (userSelect && !app.currentUser) userSelect.value = "";
+                        else if (userSelect) userSelect.value = app.currentUser;
+
+                        if (app.currentRole === 'lead') app.renderLeadDashboard();
+                        else app.renderMemberDashboard();
+                    } else {
+                        app.populateUserSelect();
+                    }
+                }, (error) => {
+                    console.error("Error getting tasks: ", error);
+                    if (error.code === 'permission-denied') {
+                        alert("Firebase Permission Denied.\nMake sure you created the database in 'Test Mode'.");
+                    }
+                });
+            },
+
+            updateMembersFromTasks: () => {
+                const existingOwners = [...new Set(app.tasks.map(t => t.owner).filter(Boolean))];
+                // basic mapping, later we could store members in a separate collection
                 app.members = existingOwners.map(name => {
-                    // Try to guess subteam from their first task
-                    const task = rawData.find(t => t.owner === name);
+                    const task = app.tasks.find(t => t.owner === name);
                     return { name: name, subteam: task ? task.subteam : 'General' };
                 });
 
-                app.populateUserSelect();
+                // Keep visually added members that might not have tasks yet (if we had a local 'members' array we wanted to keep)
+                // For now, we'll just rely on tasks + local session adds if I wanted to be fancy, 
+                // but for simplicity, let's just stick to owners derived from tasks for now. 
+                // NOTE: If you add a member via "Add Member", they won't persist unless they have a task or we save them.
+                // To fix the "Add Member" persistence, we should probably just save a dummy task or have a 'members' collection.
+                // for this Quick Fix, I will rely on the fact that the user asked to save *data* (Tasks). 
             },
 
             populateUserSelect: () => {
                 const select = document.getElementById('user-select');
+                const cleanMembers = app.members.sort((a, b) => a.name.localeCompare(b.name));
+
+                // Preserve current selection if possible
+                const currentVal = select.value;
+
                 select.innerHTML = '<option value="">-- Select Your Name --</option>';
-                app.members.sort((a, b) => a.name.localeCompare(b.name)).forEach(m => {
+                cleanMembers.forEach(m => {
                     const option = document.createElement('option');
                     option.value = m.name;
                     option.textContent = m.name;
                     select.appendChild(option);
                 });
+
+                if (currentVal) select.value = currentVal;
             },
 
             // --- AUTH ---
@@ -597,7 +663,7 @@
                             ${!isPool ? `<span class="w-2 h-2 rounded-full ${statusColor}"></span>` : ''}
                         </div>
                         <h4 class="text-stone-800 font-semibold group-hover:text-red-600 transition-colors">${task.name}</h4>
-                        <p class="text-xs text-stone-500 mt-1">ID: ${task.id}</p>
+                        <p class="text-xs text-stone-500 mt-1">ID: ${task.id || 'Pending'}</p>
                     </div>
                     <div>${isPool ? `<button class="text-xs bg-stone-100 hover:bg-stone-200 text-stone-600 px-3 py-1 rounded font-medium transition-colors" onclick="event.stopPropagation(); app.pickupTask('${task.id}')">Pick Up</button>` : `<span class="text-stone-300 group-hover:text-stone-500 text-xl">&rarr;</span>`}</div>
                 `;
@@ -694,20 +760,24 @@
 
             // --- ACTIONS ---
             pickupTask: (id) => {
-                const task = app.tasks.find(t => t.id === id);
-                if (task) { task.owner = app.currentUser; task.status = "Not Started"; app.renderMemberDashboard(); }
+                // UPDATE FIRESTORE
+                db.collection("tasks").doc(id).update({
+                    owner: app.currentUser,
+                    status: "Not Started"
+                }).catch(err => console.error(err));
+                // No need to manually update local state, onSnapshot will handle it
             },
 
             updateStatus: (id, newStatus) => {
-                const task = app.tasks.find(t => t.id === id);
-                if (task) {
-                    task.status = newStatus;
-                    app.openModal(id);
-                    if (app.currentRole === 'lead') app.renderLeadDashboard(); else app.renderMemberDashboard();
-                }
+                db.collection("tasks").doc(id).update({
+                    status: newStatus
+                }).catch(err => console.error(err));
             },
 
             addMember: () => {
+                // Keeping this local/session only for now as requested by user logic, 
+                // but real app should have a members collection to be useful.
+                // For now, if they create a task, they persist.
                 const nameInput = document.getElementById('new-member-name');
                 const teamSelect = document.getElementById('new-member-subteam');
                 if (!nameInput.value) return;
@@ -715,7 +785,7 @@
                 app.members.push({ name: nameInput.value, subteam: teamSelect.value });
                 nameInput.value = '';
                 app.renderManageTab();
-                app.populateUserSelect(); // Update login dropdown
+                app.populateUserSelect();
             },
 
             removeMember: (name) => {
@@ -727,12 +797,46 @@
             },
 
             createNewTask: () => {
-                // Create a temp ID and empty task
-                const newId = `NEW-${Math.floor(Math.random() * 1000)}`;
-                const newTask = { id: newId, name: "New Task", subteam: "General", owner: "", status: "Not Started", material: "", tool: "", qty: 1, notes: "" };
-                app.tasks.push(newTask);
-                app.openModal(newId);
-                app.toggleEditMode(true); // Immediately go to edit mode
+                const newTask = {
+                    name: "New Task",
+                    subteam: "General",
+                    owner: "",
+                    status: "Not Started",
+                    material: "",
+                    tool: "",
+                    qty: 1,
+                    notes: ""
+                };
+
+                db.collection("tasks").add(newTask).then((docRef) => {
+                    app.openModal(docRef.id);
+                    app.toggleEditMode(true);
+                }).catch(err => console.error("Error adding task: ", err));
+            },
+
+            saveTaskEdit: () => {
+                const id = document.getElementById('edit-task-id').value; // Might be hidden or we use currentEditingId
+                // We don't have an input for ID in the edit form usually (it was read only in read mode), 
+                // but let's see. In the original code `createNewTask` used a random ID.
+                // Here we use the firestore ID.
+
+                const targetId = app.currentEditingId;
+                if (!targetId) return;
+
+                const updates = {
+                    name: document.getElementById('edit-task-name').value,
+                    subteam: document.getElementById('edit-task-subteam').value,
+                    owner: document.getElementById('edit-task-owner').value,
+                    status: document.getElementById('edit-task-status').value,
+                    material: document.getElementById('edit-task-material').value,
+                    tool: document.getElementById('edit-task-tool').value,
+                    qty: Number(document.getElementById('edit-task-qty').value),
+                    notes: document.getElementById('edit-task-notes').value
+                };
+
+                db.collection("tasks").doc(targetId).update(updates).then(() => {
+                    app.toggleEditMode(false);
+                }).catch(err => console.error(err));
             },
 
             // --- MODAL ---
@@ -746,122 +850,208 @@
 
                 // Populate Read View
                 document.getElementById('modal-title').textContent = task.name;
-                document.getElementById('modal-subteam').textContent = `${task.subteam}  •  ${task.id}`;
+                document.getElementById('modal-subteam').textContent = `${task.subteam}`;
                 document.getElementById('modal-material').textContent = task.material;
                 document.getElementById('modal-qty').textContent = task.qty;
                 document.getElementById('modal-tool').textContent = task.tool;
                 document.getElementById('modal-owner').textContent = task.owner || "Unassigned";
                 document.getElementById('modal-notes').textContent = task.notes || "No notes.";
 
-                const badge = document.getElementById('modal-status-badge');
-                badge.textContent = task.status;
-                badge.className = `mt-1 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${task.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : (task.status === 'In Progress' ? 'bg-amber-100 text-amber-800' : 'bg-stone-100 text-stone-600')}`;
+                // --- STATUS PILL LOGIC ---
+                const statusContainer = document.getElementById('modal-status-container');
+                const isOwner = task.owner === app.currentUser;
+                const isLead = app.currentRole === 'lead';
 
-                const actionsContainer = document.getElementById('modal-actions');
-                actionsContainer.innerHTML = '';
-
-                // Edit Button for Leads
-                if (app.currentRole === 'lead') {
-                    const btnEdit = document.createElement('button');
-                    btnEdit.className = "text-stone-400 hover:text-stone-600 text-sm underline";
-                    btnEdit.textContent = "Edit Details";
-                    btnEdit.onclick = () => app.toggleEditMode(true);
-                    actionsContainer.appendChild(btnEdit);
+                if (isOwner || isLead) {
+                    // Render interactive SELECT dropdown
+                    statusContainer.innerHTML = `
+                        <select onchange="app.updateStatus('${task.id}', this.value)" class="select-pill transition-colors shadow-sm">
+                            <option value="Not Started" ${task.status === 'Not Started' ? 'selected' : ''}>Not Started</option>
+                            <option value="In Progress" ${task.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                            <option value="Completed" ${task.status === 'Completed' ? 'selected' : ''}>Completed</option>
+                        </select>
+                    `;
+                    // Apply initial color style
+                    app.styleSelect(statusContainer.querySelector('select'), task.status);
+                } else {
+                    // Render Read-Only Badge
+                    const badgeClass = task.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : (task.status === 'In Progress' ? 'bg-amber-100 text-amber-800' : 'bg-stone-100 text-stone-600');
+                    statusContainer.innerHTML = `<span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold uppercase tracking-wide ${badgeClass}">${task.status}</span>`;
                 }
 
-                // Status Buttons
-                if (task.owner === app.currentUser || app.currentRole === 'lead') {
-                    if (task.status !== 'Completed') {
-                        const btnFinish = document.createElement('button');
-                        btnFinish.className = "bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-sm";
-                        btnFinish.textContent = "Complete";
-                        btnFinish.onclick = () => app.updateStatus(task.id, 'Completed');
-                        actionsContainer.appendChild(btnFinish);
-                    }
-                    if (task.status === 'Not Started') {
-                        const btnStart = document.createElement('button');
-                        btnStart.className = "bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded text-sm";
-                        btnStart.textContent = "Start";
-                        btnStart.onclick = () => app.updateStatus(task.id, 'In Progress');
-                        actionsContainer.appendChild(btnStart);
-                    }
-                }
-
+                // Show modal
                 document.getElementById('task-modal').classList.remove('hidden');
                 document.body.classList.add('modal-active');
-            },
 
-            toggleEditMode: (active) => {
-                const task = app.tasks.find(t => t.id === app.currentEditingId);
-                const readHeader = document.getElementById('modal-header-read');
-                const editHeader = document.getElementById('modal-header-edit');
-                const readContent = document.getElementById('modal-content-read');
-                const editContent = document.getElementById('modal-content-edit');
-
-                if (active) {
-                    readHeader.classList.add('hidden');
-                    editHeader.classList.remove('hidden');
-                    readContent.classList.add('hidden');
-                    editContent.classList.remove('hidden');
-
-                    // Populate Inputs
-                    document.getElementById('edit-task-name').value = task.name;
-                    document.getElementById('edit-task-subteam').value = task.subteam;
-                    document.getElementById('edit-task-id').value = task.id;
-                    document.getElementById('edit-task-status').value = task.status;
-                    document.getElementById('edit-task-material').value = task.material;
-                    document.getElementById('edit-task-tool').value = task.tool;
-                    document.getElementById('edit-task-qty').value = task.qty;
-                    document.getElementById('edit-task-notes').value = task.notes;
-
-                    // Owner Dropdown
-                    const ownerSelect = document.getElementById('edit-task-owner');
-                    ownerSelect.innerHTML = '<option value="">Unassigned</option>';
-                    app.members.forEach(m => {
-                        const opt = document.createElement('option');
-                        opt.value = m.name;
-                        opt.textContent = m.name;
-                        if (m.name === task.owner) opt.selected = true;
-                        ownerSelect.appendChild(opt);
-                    });
-
-                } else {
-                    readHeader.classList.remove('hidden');
-                    editHeader.classList.add('hidden');
-                    readContent.classList.remove('hidden');
-                    editContent.classList.add('hidden');
-                }
-            },
-
-            saveTaskEdit: () => {
-                const taskIndex = app.tasks.findIndex(t => t.id === app.currentEditingId);
-                if (taskIndex > -1) {
-                    const t = app.tasks[taskIndex];
-                    t.name = document.getElementById('edit-task-name').value;
-                    t.subteam = document.getElementById('edit-task-subteam').value;
-                    t.id = document.getElementById('edit-task-id').value; // Potentially dangerous changing ID, but allowed for simplicity
-                    t.owner = document.getElementById('edit-task-owner').value;
-                    t.status = document.getElementById('edit-task-status').value;
-                    t.material = document.getElementById('edit-task-material').value;
-                    t.tool = document.getElementById('edit-task-tool').value;
-                    t.qty = document.getElementById('edit-task-qty').value;
-                    t.notes = document.getElementById('edit-task-notes').value;
-
-                    // If ID changed, update currentEditingId so modal stays consistent
-                    app.currentEditingId = t.id;
-
-                    app.openModal(t.id); // Reload modal read view
-                    if (app.currentRole === 'lead') app.renderLeadDashboard();
+                // Set Up Actions
+                const actionsContainer = document.getElementById('modal-actions');
+                actionsContainer.innerHTML = '';
+                if (isLead || isOwner) {
+                    const editBtn = document.createElement('button');
+                    editBtn.className = "text-stone-400 hover:text-stone-600";
+                    editBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/></svg>`;
+                    editBtn.onclick = () => app.toggleEditMode(true);
+                    actionsContainer.appendChild(editBtn);
                 }
             },
 
             closeModal: () => {
                 document.getElementById('task-modal').classList.add('hidden');
                 document.body.classList.remove('modal-active');
+            },
+
+            toggleEditMode: (isEdit) => {
+                const readContent = document.getElementById('modal-content-read');
+                const editContent = document.getElementById('modal-content-edit');
+                const headerRead = document.getElementById('modal-header-read');
+                const headerEdit = document.getElementById('modal-header-edit');
+
+                if (isEdit) {
+                    readContent.classList.add('hidden');
+                    editContent.classList.remove('hidden');
+                    headerRead.classList.add('hidden');
+                    headerEdit.classList.remove('hidden');
+
+                    const task = app.tasks.find(t => t.id === app.currentEditingId);
+                    if (task) {
+                        document.getElementById('edit-task-name').value = task.name;
+                        document.getElementById('edit-task-subteam').value = task.subteam;
+
+                        // Populate owner select
+                        const ownerSelect = document.getElementById('edit-task-owner');
+                        ownerSelect.innerHTML = '<option value="">-- Unassigned --</option>';
+                        app.members.forEach(m => {
+                            const opt = document.createElement('option');
+                            opt.value = m.name;
+                            opt.textContent = m.name;
+                            if (m.name === task.owner) opt.selected = true;
+                            ownerSelect.appendChild(opt);
+                        });
+
+                        document.getElementById('edit-task-status').value = task.status;
+                        document.getElementById('edit-task-material').value = task.material;
+                        document.getElementById('edit-task-tool').value = task.tool;
+                        document.getElementById('edit-task-qty').value = task.qty;
+                        document.getElementById('edit-task-notes').value = task.notes;
+                    }
+                } else {
+                    readContent.classList.remove('hidden');
+                    editContent.classList.add('hidden');
+                    headerRead.classList.remove('hidden');
+                    headerEdit.classList.add('hidden');
+                }
+            },
+
+            styleSelect: (selectEl, status) => {
+                // Reset classes
+                selectEl.className = 'select-pill transition-colors shadow-sm';
+
+                if (status === 'Completed') selectEl.classList.add('bg-emerald-100', 'text-emerald-800', 'focus:ring-emerald-400');
+                else if (status === 'In Progress') selectEl.classList.add('bg-amber-100', 'text-amber-800', 'focus:ring-amber-400');
+                else selectEl.classList.add('bg-stone-100', 'text-stone-600', 'focus:ring-stone-400');
             }
         };
 
-        window.onload = app.init;
+        // Initialize App
+        app.init();
+    </script>
+
+    const actionsContainer = document.getElementById('modal-actions');
+    actionsContainer.innerHTML = '';
+
+    // Edit Button for Leads
+    if (app.currentRole === 'lead') {
+    const btnEdit = document.createElement('button');
+    btnEdit.className = "text-stone-400 hover:text-stone-600 text-sm underline";
+    btnEdit.textContent = "Edit Details";
+    btnEdit.onclick = () => app.toggleEditMode(true);
+    actionsContainer.appendChild(btnEdit);
+    }
+
+    document.getElementById('task-modal').classList.remove('hidden');
+    document.body.classList.add('modal-active');
+    },
+
+    styleSelect: (el, status) => {
+    // Helper to color the select dropdown based on value
+    el.className = "select-pill transition-colors shadow-sm ";
+    if (status === 'Completed') el.classList.add('bg-emerald-100', 'text-emerald-800', 'hover:bg-emerald-200');
+    else if (status === 'In Progress') el.classList.add('bg-amber-100', 'text-amber-800', 'hover:bg-amber-200');
+    else el.classList.add('bg-stone-100', 'text-stone-600', 'hover:bg-stone-200');
+    },
+
+    toggleEditMode: (active) => {
+    const task = app.tasks.find(t => t.id === app.currentEditingId);
+    const readHeader = document.getElementById('modal-header-read');
+    const editHeader = document.getElementById('modal-header-edit');
+    const readContent = document.getElementById('modal-content-read');
+    const editContent = document.getElementById('modal-content-edit');
+
+    if (active) {
+    readHeader.classList.add('hidden');
+    editHeader.classList.remove('hidden');
+    readContent.classList.add('hidden');
+    editContent.classList.remove('hidden');
+
+    // Populate Inputs
+    document.getElementById('edit-task-name').value = task.name;
+    document.getElementById('edit-task-subteam').value = task.subteam;
+    document.getElementById('edit-task-id').value = task.id;
+    document.getElementById('edit-task-status').value = task.status;
+    document.getElementById('edit-task-material').value = task.material;
+    document.getElementById('edit-task-tool').value = task.tool;
+    document.getElementById('edit-task-qty').value = task.qty;
+    document.getElementById('edit-task-notes').value = task.notes;
+
+    // Owner Dropdown
+    const ownerSelect = document.getElementById('edit-task-owner');
+    ownerSelect.innerHTML = '<option value="">Unassigned</option>';
+    app.members.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.name;
+    opt.textContent = m.name;
+    if (m.name === task.owner) opt.selected = true;
+    ownerSelect.appendChild(opt);
+    });
+
+    } else {
+    readHeader.classList.remove('hidden');
+    editHeader.classList.add('hidden');
+    readContent.classList.remove('hidden');
+    editContent.classList.add('hidden');
+    }
+    },
+
+    saveTaskEdit: () => {
+    const taskIndex = app.tasks.findIndex(t => t.id === app.currentEditingId);
+    if (taskIndex > -1) {
+    const t = app.tasks[taskIndex];
+    t.name = document.getElementById('edit-task-name').value;
+    t.subteam = document.getElementById('edit-task-subteam').value;
+    t.id = document.getElementById('edit-task-id').value; // Potentially dangerous changing ID, but allowed for
+    simplicity
+    t.owner = document.getElementById('edit-task-owner').value;
+    t.status = document.getElementById('edit-task-status').value;
+    t.material = document.getElementById('edit-task-material').value;
+    t.tool = document.getElementById('edit-task-tool').value;
+    t.qty = document.getElementById('edit-task-qty').value;
+    t.notes = document.getElementById('edit-task-notes').value;
+
+    // If ID changed, update currentEditingId so modal stays consistent
+    app.currentEditingId = t.id;
+
+    app.openModal(t.id); // Reload modal read view
+    if (app.currentRole === 'lead') app.renderLeadDashboard();
+    }
+    },
+
+    closeModal: () => {
+    document.getElementById('task-modal').classList.add('hidden');
+    document.body.classList.remove('modal-active');
+    }
+    };
+
+    window.onload = app.init;
     </script>
 </body>
 

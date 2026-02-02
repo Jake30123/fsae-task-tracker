@@ -963,7 +963,7 @@
                         <h4 class="text-stone-800 font-semibold group-hover:text-red-600 transition-colors">${task.name}</h4>
                         <p class="text-xs text-stone-500 mt-1">ID: ${task.id || 'Pending'}</p>
                     </div>
-                    <div>${isPool ? `<button class="text-xs bg-stone-100 hover:bg-stone-200 text-stone-600 px-3 py-1 rounded font-medium transition-colors" onclick="event.stopPropagation(); app.pickupTask('${task.id}')">Pick Up</button>` : `<span class="text-stone-300 group-hover:text-stone-500 text-xl">&rarr;</span>`}</div>
+                    <div>${isPool ? `<button class="text-xs bg-stone-100 hover:bg-stone-200 text-stone-600 px-3 py-1 rounded font-medium transition-colors" onclick="event.stopPropagation(); app.pickupTask('${task.id}')">Pick Up</button>` : `<button class="text-xs bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1 rounded font-medium transition-colors" onclick="event.stopPropagation(); app.dropTask('${task.id}')">Drop</button>`}</div>
                 `;
                 card.onclick = (e) => { if (e.target.tagName !== 'BUTTON') app.openModal(task.id); };
                 return card;
@@ -1146,6 +1146,14 @@
                     status: "Not Started"
                 }).catch(err => console.error(err));
                 // No need to manually update local state, onSnapshot will handle it
+            },
+
+            dropTask: (id) => {
+                // Set owner to empty to move task back to pool
+                db.collection("tasks").doc(id).update({
+                    owner: "",
+                    status: "Not Started"
+                }).catch(err => console.error(err));
             },
 
             updateStatus: (id, newStatus) => {

@@ -178,8 +178,8 @@
                 <div class="flex justify-between h-16">
                     <div class="flex items-center gap-4">
                         <div class="flex-shrink-0 flex items-center cursor-pointer" onclick="location.reload()">
-                            <span class="text-2xl font-bold text-black tracking-tighter font-heading">OEM <span
-                                    class="text-oem-blue">Fabrication Tracker</span></span>
+                            <span class="text-lg sm:text-2xl font-bold text-black tracking-tighter font-heading">OEM
+                                <span class="text-oem-blue">Fabrication Tracker</span></span>
                         </div>
                         <div class="hidden md:flex ml-6 space-x-4 items-center">
                             <span id="nav-portal-label"
@@ -249,11 +249,24 @@
                         </div>
                     </div>
                     <div class="space-y-6">
-                        <div class="bg-oem-blue text-white p-4 rounded-t-xl -mb-4 z-10 relative">
-                            <h3 class="text-lg font-bold flex items-center gap-2 font-heading"><span>&#9935;</span> Open
-                                Task Pool
-                            </h3>
-                            <p class="text-oem-yellow text-xs font-mono">Unassigned tasks ready for pickup</p>
+                        <div
+                            class="bg-oem-blue text-white p-4 rounded-t-xl -mb-4 z-10 relative flex flex-col xl:flex-row justify-between items-center gap-4">
+                            <div>
+                                <h3 class="text-lg font-bold flex items-center gap-2 font-heading"><span>&#9935;</span>
+                                    Open Task Pool</h3>
+                                <p class="text-oem-yellow text-xs font-mono">Unassigned tasks ready for pickup</p>
+                            </div>
+                            <select id="member-pool-filter"
+                                class="text-xs text-black border-none rounded shadow-sm font-mono py-1 pl-2 pr-8 focus:ring-2 focus:ring-oem-yellow w-full xl:w-auto"
+                                onchange="app.renderMemberDashboard()">
+                                <option value="All">All Subteams</option>
+                                <option value="General">General</option>
+                                <option value="Drivetrain">Drivetrain</option>
+                                <option value="Accumulator">Accumulator</option>
+                                <option value="Cockpit">Cockpit</option>
+                                <option value="Suspension">Suspension</option>
+                                <option value="Aero">Aero</option>
+                            </select>
                         </div>
                         <div
                             class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 max-h-[600px] overflow-y-auto">
@@ -417,11 +430,24 @@
                     </div>
 
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                        <div class="bg-oem-blue text-white p-4">
-                            <h3 class="text-lg font-bold flex items-center gap-2 font-heading"><span>&#9935;</span> Open
-                                Task Pool
-                            </h3>
-                            <p class="text-oem-yellow text-xs font-mono">Unassigned tasks ready for pickup</p>
+                        <div
+                            class="bg-oem-blue text-white p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <div>
+                                <h3 class="text-lg font-bold flex items-center gap-2 font-heading"><span>&#9935;</span>
+                                    Open Task Pool</h3>
+                                <p class="text-oem-yellow text-xs font-mono">Unassigned tasks ready for pickup</p>
+                            </div>
+                            <select id="lead-pool-filter"
+                                class="text-xs text-black border-none rounded shadow-sm font-mono py-1 pl-2 pr-8 focus:ring-2 focus:ring-oem-yellow"
+                                onchange="app.renderLeadDashboard()">
+                                <option value="All">All Subteams</option>
+                                <option value="General">General</option>
+                                <option value="Drivetrain">Drivetrain</option>
+                                <option value="Accumulator">Accumulator</option>
+                                <option value="Cockpit">Cockpit</option>
+                                <option value="Suspension">Suspension</option>
+                                <option value="Aero">Aero</option>
+                            </select>
                         </div>
                         <div class="p-4 bg-gray-50 max-h-[400px] overflow-y-auto">
                             <div id="lead-pool-tasks-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1100,9 +1126,23 @@
                     myTasks.forEach(task => tasksContainer.appendChild(app.createTaskCard(task, false)));
                 }
 
+                // Filter Pool Tasks
+                const poolFilterSelect = document.getElementById('member-pool-filter');
+                const poolFilter = poolFilterSelect ? poolFilterSelect.value : 'All';
+
+                let filteredPoolTasks = poolTasks;
+                if (poolFilter && poolFilter !== 'All') {
+                    filteredPoolTasks = poolTasks.filter(t => t.subteam && t.subteam.trim().toLowerCase() === poolFilter.toLowerCase());
+                }
+
                 const poolContainer = document.getElementById('pool-tasks-list');
                 poolContainer.innerHTML = '';
-                poolTasks.forEach(task => poolContainer.appendChild(app.createTaskCard(task, true)));
+
+                if (filteredPoolTasks.length === 0) {
+                    poolContainer.innerHTML = '<p class="text-gray-400 text-center italic py-4 font-mono">No open filter tasks.</p>';
+                } else {
+                    filteredPoolTasks.forEach(task => poolContainer.appendChild(app.createTaskCard(task, true)));
+                }
             },
 
             createTaskCard: (task, isPool) => {
@@ -1271,10 +1311,20 @@
                 }
 
                 // 3. RENDER OPEN TASK POOL (New)
+                // 3. RENDER OPEN TASK POOL (New)
                 const poolContainer = document.getElementById('lead-pool-tasks-list');
+
+                // --- NEW ISOLATED FILTER LOGIC FOR POOL ---
+                const poolFilterSelect = document.getElementById('lead-pool-filter');
+                const poolFilter = poolFilterSelect ? poolFilterSelect.value : 'All';
+
                 if (poolContainer) {
                     poolContainer.innerHTML = '';
-                    const poolTasks = app.tasks.filter(t => !t.owner); // Show all open tasks
+                    let poolTasks = app.tasks.filter(t => !t.owner); // Start with all open tasks
+
+                    if (poolFilter && poolFilter !== 'All') {
+                        poolTasks = poolTasks.filter(t => t.subteam && t.subteam.trim().toLowerCase() === poolFilter.toLowerCase());
+                    }
 
                     if (poolTasks.length === 0) {
                         poolContainer.innerHTML = '<p class="text-gray-400 col-span-3 text-center italic py-4 font-mono">No open tasks available.</p>';
@@ -1551,7 +1601,10 @@
                 // Due Date with overdue highlighting
                 const dueDateEl = document.getElementById('modal-due-date');
                 if (task.dueDate) {
-                    const dueDate = new Date(task.dueDate);
+                    const dateParts = task.dueDate.split('-');
+                    // Create date as local time (Year, Month Index 0-11, Day) to avoid UTC shifts
+                    const dueDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     const isOverdue = dueDate < today && task.status !== 'Completed';

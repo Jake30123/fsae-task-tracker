@@ -56,6 +56,12 @@
             max-height: 300px;
         }
 
+        .chart-container-pm {
+            position: relative;
+            width: 100%;
+            height: 120px;
+        }
+
         /* Modal Transition */
         .modal {
             transition: opacity 0.25s ease;
@@ -239,7 +245,41 @@
 
                 <!-- OVERVIEW TAB CONTENT -->
                 <div id="lead-content-overview" class="space-y-8">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- PM-ONLY: 5 Subteam Charts -->
+                    <div id="pm-subteam-charts" class="hidden">
+                        <h4 class="text-sm font-bold text-stone-500 uppercase tracking-wide mb-4">Subteam Status
+                            Overview</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                                <h5 class="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2 text-center">
+                                    Drivetrain</h5>
+                                <div class="chart-container-pm"><canvas id="chartDrivetrain"></canvas></div>
+                            </div>
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                                <h5 class="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2 text-center">
+                                    Suspension</h5>
+                                <div class="chart-container-pm"><canvas id="chartSuspension"></canvas></div>
+                            </div>
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                                <h5 class="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2 text-center">
+                                    Accumulator</h5>
+                                <div class="chart-container-pm"><canvas id="chartAccumulator"></canvas></div>
+                            </div>
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                                <h5 class="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2 text-center">
+                                    Cockpit</h5>
+                                <div class="chart-container-pm"><canvas id="chartCockpit"></canvas></div>
+                            </div>
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                                <h5 class="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2 text-center">
+                                    Aero</h5>
+                                <div class="chart-container-pm"><canvas id="chartAero"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subteam Lead: Single Status Chart -->
+                    <div id="subteam-lead-chart" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-100">
                             <h4 class="text-sm font-bold text-stone-500 uppercase tracking-wide mb-4">Fabrication Status
                             </h4>
@@ -391,6 +431,7 @@
                                 <option>Accumulator</option>
                                 <option>Cockpit</option>
                                 <option>General</option>
+                                <option>Aero</option>
                             </select>
                             <input type="text" id="edit-task-id"
                                 class="text-xs border-b border-stone-300 w-24 bg-transparent" placeholder="ID">
@@ -1102,16 +1143,56 @@
             },
 
             renderCharts: (tasks) => {
-                const statusCounts = { 'Completed': 0, 'In Progress': 0, 'Not Started': 0 };
-                tasks.forEach(t => statusCounts[t.status]++);
+                const scope = app.leadScope ? app.leadScope.trim() : null;
+                const isPM = scope === 'All';
 
-                const ctxStatus = document.getElementById('teamStatusChart').getContext('2d');
-                if (app.charts.status) app.charts.status.destroy();
-                app.charts.status = new Chart(ctxStatus, {
-                    type: 'doughnut',
-                    data: { labels: Object.keys(statusCounts), datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#10b981', '#f59e0b', '#e7e5e4'], borderWidth: 0 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-                });
+                // Toggle visibility of PM vs Subteam Lead sections
+                const pmCharts = document.getElementById('pm-subteam-charts');
+                const subteamChart = document.getElementById('subteam-lead-chart');
+
+                if (isPM) {
+                    if (pmCharts) pmCharts.classList.remove('hidden');
+                    if (subteamChart) subteamChart.classList.add('hidden');
+
+                    // Render 5 subteam donut charts for PM
+                    const subteams = ['Drivetrain', 'Suspension', 'Accumulator', 'Cockpit', 'Aero'];
+                    subteams.forEach(subteam => {
+                        const subteamTasks = tasks.filter(t => t.subteam && t.subteam.trim().toLowerCase() === subteam.toLowerCase());
+                        const statusCounts = { 'Completed': 0, 'In Progress': 0, 'Not Started': 0 };
+                        subteamTasks.forEach(t => statusCounts[t.status]++);
+
+                        const chartId = `chart${subteam}`;
+                        const canvas = document.getElementById(chartId);
+                        if (!canvas) return;
+
+                        const ctx = canvas.getContext('2d');
+                        if (app.charts[chartId]) app.charts[chartId].destroy();
+
+                        app.charts[chartId] = new Chart(ctx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['Completed', 'In Progress', 'Not Started'],
+                                datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#10b981', '#f59e0b', '#e7e5e4'], borderWidth: 0 }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                        });
+                    });
+                } else {
+                    if (pmCharts) pmCharts.classList.add('hidden');
+                    if (subteamChart) subteamChart.classList.remove('hidden');
+
+                    // Render single status chart for subteam leads
+                    const statusCounts = { 'Completed': 0, 'In Progress': 0, 'Not Started': 0 };
+                    tasks.forEach(t => statusCounts[t.status]++);
+
+                    const ctxStatus = document.getElementById('teamStatusChart').getContext('2d');
+                    if (app.charts.status) app.charts.status.destroy();
+                    app.charts.status = new Chart(ctxStatus, {
+                        type: 'doughnut',
+                        data: { labels: Object.keys(statusCounts), datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#10b981', '#f59e0b', '#e7e5e4'], borderWidth: 0 }] },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+                    });
+                }
 
                 const workload = {};
                 tasks.forEach(t => { if (t.owner) workload[t.owner] = (workload[t.owner] || 0) + 1; });
@@ -1119,7 +1200,6 @@
                 let sortedOwners = Object.entries(workload).sort((a, b) => b[1] - a[1]);
 
                 // STRICT FILTER: Only show members belonging to the current scope
-                const scope = app.leadScope ? app.leadScope.trim() : null;
                 if (scope && scope !== 'All') {
                     sortedOwners = sortedOwners.filter(([name, count]) => {
                         const m = app.members.find(mem => mem.name === name);

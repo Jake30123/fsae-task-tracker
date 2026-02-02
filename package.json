@@ -1,0 +1,10 @@
+{
+  "name": "fsae-task-tracker",
+  "version": "1.0.0",
+  "description": "Fabrication Task Tracker for FSAE Team",
+  "scripts": {
+    "start": "npx http-server . -p 8080 -c-1"
+  },
+  "author": "",
+  "license": "ISC"
+}

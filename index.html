@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FSAE Fabrication Tracker - v3.0</title>
+    <title>OEM Fabrication Tracker</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -20,13 +20,45 @@
     <script src="firebase-config.js"></script>
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+        rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        oem: {
+                            yellow: '#f7af1d',
+                            blue: '#4466af',
+                            dark: '#595959',
+                            light: '#f3f3f3',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Space Grotesk"', 'sans-serif'],
+                        mono: ['"Space Mono"', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
 
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f5f5f4;
-            /* Stone-100 */
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #f3f3f3;
+            /* OEM Light Gray */
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        .font-heading {
+            font-family: 'Space Mono', monospace;
         }
 
         /* Custom Scrollbar */
@@ -36,16 +68,18 @@
         }
 
         ::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: #f3f3f3;
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #d6d3d1;
+            background: #4466af;
+            /* OEM Blue */
             border-radius: 4px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: #a8a29e;
+            background: #f7af1d;
+            /* OEM Yellow */
         }
 
         .chart-container {
@@ -77,48 +111,48 @@
         }
 
         .status-pill-progress {
-            @apply bg-amber-100 text-amber-800 border-amber-200;
+            @apply bg-oem-yellow bg-opacity-20 text-yellow-800 border-oem-yellow;
         }
 
         .status-pill-todo {
-            @apply bg-stone-100 text-stone-600 border-stone-200;
+            @apply bg-oem-light text-oem-dark border-gray-200;
         }
 
         /* Interactive Select Pill */
         .select-pill {
             @apply appearance-none border-none text-sm font-bold uppercase tracking-wide px-4 py-1.5 rounded-full cursor-pointer focus:ring-2 focus:ring-offset-1 focus:outline-none text-center;
             text-align-last: center;
-            /* Aligns text in some browsers */
         }
 
         /* Tab Active State */
         .tab-active {
-            @apply border-red-500 text-red-600 border-b-2;
+            @apply border-oem-yellow text-oem-blue border-b-4 bg-oem-light;
         }
 
         .tab-inactive {
-            @apply border-transparent text-stone-500 hover:text-stone-700 hover:border-stone-300 border-b-2;
+            @apply border-transparent text-gray-400 hover:text-oem-blue hover:border-gray-200 border-b-4;
         }
     </style>
 </head>
 
-<body class="text-stone-800 antialiased min-h-screen flex flex-col">
+<body class="text-gray-800 antialiased min-h-screen flex flex-col font-sans">
 
     <!-- ================== LOGIN VIEW ================== -->
     <div id="login-view"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-stone-200 bg-opacity-50 backdrop-blur-sm">
-        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-stone-100">
+        class="fixed inset-0 z-50 flex items-center justify-center bg-oem-blue bg-opacity-10 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
             <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-stone-800 tracking-tight">Mk VIII Fabrication Tracker</h1>
-                <p class="text-stone-500 mt-2 text-sm">Select your profile to begin</p>
+                <h1 class="text-3xl font-bold text-black tracking-tight font-heading">OEM Fabrication Tracker</h1>
+                <p class="text-gray-500 mt-2 text-sm font-mono text-oem-blue">Select your profile to begin</p>
             </div>
 
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Team
+                    <label
+                        class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 font-mono">Team
                         Member</label>
                     <input type="text" id="user-input" list="user-list" placeholder="Type your name..."
-                        class="w-full p-3 bg-stone-50 border border-stone-200 rounded-lg focus:ring-2 focus:ring-stone-400 focus:outline-none transition-all">
+                        class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-oem-yellow focus:outline-none transition-all">
                     <datalist id="user-list">
                         <!-- Populated by JS -->
                     </datalist>
@@ -128,7 +162,7 @@
                 <div></div>
 
                 <button onclick="app.login()"
-                    class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors mt-4">
+                    class="w-full bg-oem-blue hover:bg-blue-800 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors mt-4 font-mono uppercase tracking-widest">
                     Enter
                 </button>
             </div>
@@ -139,27 +173,27 @@
     <div id="app-shell" class="hidden flex-1 flex flex-col">
 
         <!-- Navigation -->
-        <nav class="bg-white border-b border-stone-200 sticky top-0 z-30 shadow-sm">
+        <nav class="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16">
                     <div class="flex items-center gap-4">
                         <div class="flex-shrink-0 flex items-center cursor-pointer" onclick="location.reload()">
-                            <span class="text-2xl font-bold text-stone-900 tracking-tighter">Mk VIII <span
-                                    class="text-red-600">Fabrication Tracker</span></span>
+                            <span class="text-2xl font-bold text-black tracking-tighter font-heading">OEM <span
+                                    class="text-oem-blue">Fabrication Tracker</span></span>
                         </div>
                         <div class="hidden md:flex ml-6 space-x-4 items-center">
                             <span id="nav-portal-label"
-                                class="px-3 py-1 rounded-full text-xs font-medium bg-stone-100 text-stone-600 border border-stone-200">
+                                class="px-3 py-1 rounded-full text-xs font-medium bg-oem-light text-oem-blue border border-gray-200 font-mono">
                                 Member Portal
                             </span>
                         </div>
                     </div>
                     <div class="flex items-center space-x-4">
                         <div class="text-right hidden sm:block">
-                            <div id="user-display-name" class="text-sm font-medium text-stone-900">User</div>
-                            <div id="user-display-subteam" class="text-xs text-stone-500">Mechanical</div>
+                            <div id="user-display-name" class="text-sm font-medium text-black">User</div>
+                            <div id="user-display-subteam" class="text-xs text-gray-500">Mechanical</div>
                         </div>
-                        <button onclick="app.logout()" class="text-stone-400 hover:text-red-600 transition-colors">
+                        <button onclick="app.logout()" class="text-gray-400 hover:text-oem-blue transition-colors">
                             <span class="text-sm font-semibold">Logout</span>
                         </button>
                     </div>
@@ -174,53 +208,55 @@
             <div id="member-dashboard" class="hidden space-y-8">
                 <!-- Welcome / Stats Header -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-100 md:col-span-2">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 md:col-span-2">
                         <div class="flex justify-between items-start mb-2">
-                            <h2 class="text-2xl font-bold text-stone-800">My Fabrication Tasks</h2>
+                            <h2 class="text-2xl font-bold text-black font-heading">My Fabrication Tasks</h2>
                             <button onclick="app.createNewTask()"
-                                class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg text-sm font-medium shadow-sm transition-colors transform scale-100 hover:scale-105">
+                                class="bg-oem-blue hover:bg-blue-800 text-white px-3 py-1 rounded-lg text-sm font-medium shadow-sm transition-colors transform scale-100 hover:scale-105 font-mono">
                                 + Create Task
                             </button>
                         </div>
-                        <p class="text-stone-500 mb-6">Track your progress and access drawings.</p>
-                        <div class="w-full bg-stone-100 rounded-full h-4 mb-2 overflow-hidden">
+                        <p class="text-gray-500 mb-6">Track your progress and access drawings.</p>
+                        <div class="w-full bg-gray-100 rounded-full h-4 mb-2 overflow-hidden">
                             <div id="member-progress-bar"
-                                class="bg-emerald-500 h-4 rounded-full transition-all duration-1000" style="width: 0%">
+                                class="bg-oem-yellow h-4 rounded-full transition-all duration-1000" style="width: 0%">
                             </div>
                         </div>
-                        <div class="flex justify-between text-xs font-medium text-stone-500">
+                        <div class="flex justify-between text-xs font-medium text-gray-500 font-mono">
                             <span>0% Complete</span>
                             <span id="member-progress-text">0 / 0 Tasks Done</span>
                         </div>
                     </div>
                     <div
-                        class="bg-white p-6 rounded-xl shadow-sm border border-stone-100 flex flex-col justify-center items-center text-center">
-                        <span class="text-stone-400 text-sm uppercase tracking-wider font-semibold">Pending Tasks</span>
-                        <span id="member-pending-count" class="text-5xl font-bold text-stone-800 mt-2">0</span>
+                        class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
+                        <span class="text-gray-400 text-sm uppercase tracking-wider font-semibold font-mono">Pending
+                            Tasks</span>
+                        <span id="member-pending-count" class="text-5xl font-bold text-black mt-2 font-heading">0</span>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div class="lg:col-span-2 space-y-6">
                         <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-bold text-stone-800 flex items-center gap-2">
-                                <span class="w-2 h-6 bg-red-600 rounded-full"></span> Assigned to Me
+                            <h3 class="text-lg font-bold text-black flex items-center gap-2 font-heading">
+                                <span class="w-2 h-6 bg-oem-blue rounded-full"></span> Assigned to Me
                             </h3>
                         </div>
                         <div id="my-tasks-list" class="space-y-4"></div>
                         <div id="my-tasks-empty"
-                            class="hidden p-8 text-center bg-stone-50 rounded-xl border border-dashed border-stone-300 text-stone-400">
+                            class="hidden p-8 text-center bg-gray-50 rounded-xl border border-dashed border-gray-300 text-gray-400 font-mono">
                             No tasks currently assigned to you. Check the Open Pool!
                         </div>
                     </div>
                     <div class="space-y-6">
-                        <div class="bg-stone-800 text-white p-4 rounded-t-xl -mb-4 z-10 relative">
-                            <h3 class="text-lg font-bold flex items-center gap-2"><span>&#9935;</span> Open Task Pool
+                        <div class="bg-oem-blue text-white p-4 rounded-t-xl -mb-4 z-10 relative">
+                            <h3 class="text-lg font-bold flex items-center gap-2 font-heading"><span>&#9935;</span> Open
+                                Task Pool
                             </h3>
-                            <p class="text-stone-400 text-xs">Unassigned tasks ready for pickup</p>
+                            <p class="text-oem-yellow text-xs font-mono">Unassigned tasks ready for pickup</p>
                         </div>
                         <div
-                            class="bg-white rounded-xl shadow-sm border border-stone-200 p-4 max-h-[600px] overflow-y-auto">
+                            class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 max-h-[600px] overflow-y-auto">
                             <div id="pool-tasks-list" class="space-y-3 mt-2"></div>
                         </div>
                     </div>
@@ -230,14 +266,14 @@
             <!-- LEAD DASHBOARD -->
             <div id="lead-dashboard" class="hidden space-y-8">
                 <!-- Lead Tabs -->
-                <div class="border-b border-stone-200">
+                <div class="border-b border-gray-200">
                     <nav class="-mb-px flex space-x-8" aria-label="Tabs">
                         <button onclick="app.switchLeadTab('overview')" id="tab-overview"
-                            class="tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                            class="tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm font-heading">
                             Overview & Tracking
                         </button>
                         <button onclick="app.switchLeadTab('manage')" id="tab-manage"
-                            class="tab-inactive whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                            class="tab-inactive whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm font-heading">
                             Manage Team & Tasks
                         </button>
                     </nav>
@@ -247,31 +283,37 @@
                 <div id="lead-content-overview" class="space-y-8">
                     <!-- PM-ONLY: 5 Subteam Charts -->
                     <div id="pm-subteam-charts" class="hidden">
-                        <h4 class="text-sm font-bold text-stone-500 uppercase tracking-wide mb-4">Subteam Status
+                        <h4 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4 font-mono">Subteam
+                            Status
                             Overview</h4>
                         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                            <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
-                                <h5 class="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2 text-center">
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                <h5
+                                    class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 text-center font-mono">
                                     Drivetrain</h5>
                                 <div class="chart-container-pm"><canvas id="chartDrivetrain"></canvas></div>
                             </div>
-                            <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
-                                <h5 class="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2 text-center">
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                <h5
+                                    class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 text-center font-mono">
                                     Suspension</h5>
                                 <div class="chart-container-pm"><canvas id="chartSuspension"></canvas></div>
                             </div>
-                            <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
-                                <h5 class="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2 text-center">
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                <h5
+                                    class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 text-center font-mono">
                                     Accumulator</h5>
                                 <div class="chart-container-pm"><canvas id="chartAccumulator"></canvas></div>
                             </div>
-                            <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
-                                <h5 class="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2 text-center">
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                <h5
+                                    class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 text-center font-mono">
                                     Cockpit</h5>
                                 <div class="chart-container-pm"><canvas id="chartCockpit"></canvas></div>
                             </div>
-                            <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
-                                <h5 class="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2 text-center">
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                                <h5
+                                    class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 text-center font-mono">
                                     Aero</h5>
                                 <div class="chart-container-pm"><canvas id="chartAero"></canvas></div>
                             </div>
@@ -279,7 +321,7 @@
                         <!-- PM Create Task Button -->
                         <div class="mt-4 flex justify-center">
                             <button onclick="app.createNewTask()"
-                                class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2">
+                                class="bg-oem-blue hover:bg-blue-800 text-white px-6 py-3 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2 font-mono">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
                                     viewBox="0 0 16 16">
                                     <path
@@ -292,22 +334,23 @@
 
                     <!-- Subteam Lead: Single Status Chart -->
                     <div id="subteam-lead-chart" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-100">
-                            <h4 class="text-sm font-bold text-stone-500 uppercase tracking-wide mb-4">Fabrication Status
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h4 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4 font-mono">
+                                Fabrication Status
                             </h4>
                             <div class="chart-container"><canvas id="teamStatusChart"></canvas></div>
                         </div>
 
                         <!-- NEW LOCATION: Create Task -->
                         <div
-                            class="bg-white p-6 rounded-xl shadow-sm border border-stone-100 flex flex-col justify-center items-center text-center">
+                            class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-center items-center text-center">
                             <div class="mb-4">
-                                <h3 class="text-lg font-bold text-stone-900">Create New Task</h3>
-                                <p class="text-sm text-stone-500 max-w-xs mx-auto">Add new parts, assemblies, or jobs to
+                                <h3 class="text-lg font-bold text-black font-heading">Create New Task</h3>
+                                <p class="text-sm text-gray-500 max-w-xs mx-auto">Add new parts, assemblies, or jobs to
                                     the tracker.</p>
                             </div>
                             <button onclick="app.createNewTask()"
-                                class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2">
+                                class="bg-oem-blue hover:bg-blue-800 text-white px-6 py-3 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2 font-mono">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
                                     viewBox="0 0 16 16">
                                     <path
@@ -318,23 +361,25 @@
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
-                        <div class="bg-stone-800 text-white p-4">
-                            <h3 class="text-lg font-bold flex items-center gap-2"><span>&#9935;</span> Open Task Pool
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div class="bg-oem-blue text-white p-4">
+                            <h3 class="text-lg font-bold flex items-center gap-2 font-heading"><span>&#9935;</span> Open
+                                Task Pool
                             </h3>
-                            <p class="text-stone-400 text-xs">Unassigned tasks ready for pickup</p>
+                            <p class="text-oem-yellow text-xs font-mono">Unassigned tasks ready for pickup</p>
                         </div>
-                        <div class="p-4 bg-stone-50 max-h-[400px] overflow-y-auto">
+                        <div class="p-4 bg-gray-50 max-h-[400px] overflow-y-auto">
                             <div id="lead-pool-tasks-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             </div>
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                         <div
-                            class="p-4 border-b border-stone-200 bg-stone-50 flex flex-col sm:flex-row justify-between items-center gap-4">
-                            <h3 class="font-bold text-stone-700">Master Task List</h3>
-                            <select id="lead-filter-subteam" class="text-sm border-stone-300 rounded-md shadow-sm"
+                            class="p-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <h3 class="font-bold text-black font-heading">Master Task List</h3>
+                            <select id="lead-filter-subteam"
+                                class="text-sm border-gray-300 rounded-md shadow-sm font-mono"
                                 onchange="app.renderLeadDashboard()">
                                 <option value="All">All Subteams</option>
                                 <option value="General">General</option>
@@ -346,25 +391,25 @@
                             </select>
                         </div>
                         <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-stone-200">
-                                <thead class="bg-stone-50">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
                                     <tr>
                                         <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-mono">
                                             Part / Task</th>
                                         <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-mono">
                                             Owner</th>
                                         <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-mono">
                                             Designed By</th>
                                         <th
-                                            class="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-mono">
                                             Status</th>
                                         <th class="relative px-6 py-3"><span class="sr-only">View</span></th>
                                     </tr>
                                 </thead>
-                                <tbody id="lead-table-body" class="bg-white divide-y divide-stone-200"></tbody>
+                                <tbody id="lead-table-body" class="bg-white divide-y divide-gray-200"></tbody>
                             </table>
                         </div>
                     </div>
@@ -376,25 +421,25 @@
                     <!-- REMOVED Create Task Section (Moved to Overview) -->
 
                     <!-- NEW LOCATION: Workload Chart -->
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-100">
-                        <h4 class="text-lg font-bold text-stone-900 mb-4">Workload by Member</h4>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h4 class="text-lg font-bold text-black mb-4 font-heading">Workload by Member</h4>
                         <div class="chart-container" style="height: 300px;"><canvas id="memberWorkloadChart"></canvas>
                         </div>
                     </div>
 
                     <!-- Team Management Section -->
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-100">
-                        <h3 class="text-lg font-bold text-stone-900 mb-4">Team Roster</h3>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-bold text-black mb-4 font-heading">Team Roster</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
                             <!-- Add Member Form -->
-                            <div class="bg-stone-50 p-4 rounded-lg border border-stone-200">
-                                <h4 class="text-sm font-bold text-stone-700 mb-3">Add New Member</h4>
+                            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <h4 class="text-sm font-bold text-gray-700 mb-3 font-mono">Add New Member</h4>
                                 <div class="space-y-3">
                                     <input type="text" id="new-member-name" placeholder="Name (e.g. John Doe)"
-                                        class="w-full p-2 border border-stone-300 rounded text-sm focus:ring-2 focus:ring-red-500 focus:outline-none">
+                                        class="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-oem-yellow focus:outline-none placeholder-gray-400">
                                     <select id="new-member-subteam"
-                                        class="w-full p-2 border border-stone-300 rounded text-sm bg-white">
+                                        class="w-full p-2 border border-gray-300 rounded text-sm bg-white">
                                         <option value="General">General</option>
                                         <option value="Drivetrain">Drivetrain</option>
                                         <option value="Accumulator">Accumulator</option>
@@ -403,17 +448,17 @@
                                         <option value="Aero">Aero</option>
                                     </select>
                                     <button onclick="app.addMember()"
-                                        class="w-full bg-stone-800 text-white py-2 rounded text-sm font-medium hover:bg-stone-900">Add
+                                        class="w-full bg-oem-dark text-white py-2 rounded text-sm font-medium hover:bg-black transition-colors font-mono">Add
                                         Member</button>
                                 </div>
                             </div>
 
                             <!-- Current Roster List -->
-                            <div class="border border-stone-200 rounded-lg overflow-hidden">
+                            <div class="border border-gray-200 rounded-lg overflow-hidden">
                                 <div
-                                    class="bg-stone-100 px-4 py-2 border-b border-stone-200 text-xs font-bold text-stone-500 uppercase">
+                                    class="bg-gray-100 px-4 py-2 border-b border-gray-200 text-xs font-bold text-gray-500 uppercase font-mono">
                                     Current Members</div>
-                                <div id="member-roster-list" class="max-h-60 overflow-y-auto divide-y divide-stone-100">
+                                <div id="member-roster-list" class="max-h-60 overflow-y-auto divide-y divide-gray-100">
                                     <!-- JS populated -->
                                 </div>
                             </div>
@@ -428,28 +473,29 @@
     <div id="task-modal" class="fixed inset-0 z-[100] hidden overflow-y-auto" aria-labelledby="modal-title"
         role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-stone-900 bg-opacity-75 transition-opacity" onclick="app.closeModal()"></div>
+            <div class="fixed inset-0 bg-oem-dark bg-opacity-75 transition-opacity" onclick="app.closeModal()"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
 
             <div
                 class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full">
 
                 <!-- Modal Header -->
-                <div class="bg-stone-50 px-4 py-5 sm:px-6 border-b border-stone-200 flex justify-between items-start">
+                <div class="bg-gray-50 px-4 py-5 sm:px-6 border-b border-gray-200 flex justify-between items-start">
                     <div id="modal-header-read" class="w-full">
                         <div class="flex justify-between items-start">
                             <div>
-                                <h3 class="text-lg leading-6 font-medium text-stone-900" id="modal-title">Part Name</h3>
-                                <p class="mt-1 max-w-2xl text-sm text-stone-500" id="modal-subteam">Subteam</p>
+                                <h3 class="text-lg leading-6 font-bold text-black font-heading" id="modal-title">Part
+                                    Name</h3>
+                                <p class="mt-1 max-w-2xl text-sm text-gray-500 font-mono" id="modal-subteam">Subteam</p>
                             </div>
                         </div>
                     </div>
                     <div id="modal-header-edit" class="hidden w-full mr-4">
                         <input type="text" id="edit-task-name"
-                            class="w-full font-bold text-lg border-b border-stone-300 focus:outline-none focus:border-red-500 bg-transparent"
+                            class="w-full font-bold text-lg border-b border-gray-300 focus:outline-none focus:border-oem-yellow bg-transparent font-heading"
                             placeholder="Task Name">
                         <div class="flex gap-2 mt-2">
-                            <select id="edit-task-subteam" class="text-xs border rounded p-1">
+                            <select id="edit-task-subteam" class="text-xs border rounded p-1 font-mono">
                                 <option>Drivetrain</option>
                                 <option>Suspension</option>
                                 <option>Accumulator</option>
@@ -458,11 +504,11 @@
                                 <option>Aero</option>
                             </select>
                             <input type="text" id="edit-task-id"
-                                class="text-xs border-b border-stone-300 w-24 bg-transparent" placeholder="ID">
+                                class="text-xs border-b border-gray-300 w-24 bg-transparent font-mono" placeholder="ID">
                         </div>
                     </div>
                     <button type="button"
-                        class="bg-white rounded-md text-stone-400 hover:text-stone-500 focus:outline-none ml-4"
+                        class="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none ml-4"
                         onclick="app.closeModal()">
                         <span class="text-2xl font-bold">&times;</span>
                     </button>
@@ -476,9 +522,10 @@
 
                         <!-- NEW STATUS BAR -->
                         <div
-                            class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-stone-50 p-4 rounded-lg mb-6 border border-stone-200">
+                            class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
                             <div class="flex items-center gap-3">
-                                <span class="text-xs font-bold text-stone-400 uppercase tracking-wide">Status</span>
+                                <span
+                                    class="text-xs font-bold text-gray-400 uppercase tracking-wide font-mono">Status</span>
                                 <div id="modal-status-container">
                                     <!-- Populated by JS: Either a Badge or a Select Dropdown -->
                                 </div>
@@ -488,44 +535,45 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <dl class="space-y-3">
-                                <div class="flex justify-between border-b border-stone-100 pb-1">
-                                    <dt class="text-sm font-medium text-stone-500">Material</dt>
-                                    <dd class="text-sm text-stone-900 font-semibold" id="modal-material">-</dd>
+                                <div class="flex justify-between border-b border-gray-100 pb-1">
+                                    <dt class="text-sm font-medium text-gray-500 font-mono">Material</dt>
+                                    <dd class="text-sm text-black font-semibold" id="modal-material">-</dd>
                                 </div>
-                                <div class="flex justify-between border-b border-stone-100 pb-1">
-                                    <dt class="text-sm font-medium text-stone-500">Qty</dt>
-                                    <dd class="text-sm text-stone-900 font-semibold" id="modal-qty">-</dd>
+                                <div class="flex justify-between border-b border-gray-100 pb-1">
+                                    <dt class="text-sm font-medium text-gray-500 font-mono">Qty</dt>
+                                    <dd class="text-sm text-black font-semibold" id="modal-qty">-</dd>
                                 </div>
-                                <div class="flex justify-between border-b border-stone-100 pb-1">
-                                    <dt class="text-sm font-medium text-stone-500">Tool/Process</dt>
-                                    <dd class="text-sm text-stone-900 font-semibold" id="modal-tool">-</dd>
+                                <div class="flex justify-between border-b border-gray-100 pb-1">
+                                    <dt class="text-sm font-medium text-gray-500 font-mono">Tool/Process</dt>
+                                    <dd class="text-sm text-black font-semibold" id="modal-tool">-</dd>
                                 </div>
-                                <div class="flex justify-between border-b border-stone-100 pb-1">
-                                    <dt class="text-sm font-medium text-stone-500">Designed By</dt>
-                                    <dd class="text-sm text-stone-900 font-semibold" id="modal-designer">-</dd>
+                                <div class="flex justify-between border-b border-gray-100 pb-1">
+                                    <dt class="text-sm font-medium text-gray-500 font-mono">Designed By</dt>
+                                    <dd class="text-sm text-black font-semibold" id="modal-designer">-</dd>
                                 </div>
-                                <div class="flex justify-between border-b border-stone-100 pb-1">
-                                    <dt class="text-sm font-medium text-stone-500">Owner</dt>
-                                    <dd class="text-sm text-stone-900 font-semibold" id="modal-owner">-</dd>
+                                <div class="flex justify-between border-b border-gray-100 pb-1">
+                                    <dt class="text-sm font-medium text-gray-500 font-mono">Owner</dt>
+                                    <dd class="text-sm text-black font-semibold" id="modal-owner">-</dd>
                                 </div>
-                                <div class="flex justify-between border-b border-stone-100 pb-1">
-                                    <dt class="text-sm font-medium text-stone-500">Due Date</dt>
+                                <div class="flex justify-between border-b border-gray-100 pb-1">
+                                    <dt class="text-sm font-medium text-gray-500 font-mono">Due Date</dt>
                                     <dd class="text-sm font-semibold" id="modal-due-date">-</dd>
                                 </div>
                             </dl>
                             <div id="drawing-section"
-                                class="bg-stone-100 rounded-lg p-4 flex flex-col justify-center items-center text-center border-2 border-dashed border-stone-300">
+                                class="bg-gray-100 rounded-lg p-4 flex flex-col justify-center items-center text-center border-2 border-dashed border-gray-300">
                                 <span class="text-4xl mb-2">&#128196;</span>
-                                <h4 class="text-sm font-bold text-stone-700">Drawing</h4>
+                                <h4 class="text-sm font-bold text-gray-700 font-mono">Drawing</h4>
                                 <button id="view-pdf-btn" onclick="app.viewPDF()" style="display: none;"
-                                    class="mt-2 bg-white border border-stone-300 text-stone-700 hover:bg-stone-50 px-3 py-1 rounded text-xs shadow-sm">View
+                                    class="mt-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 py-1 rounded text-xs shadow-sm font-mono">View
                                     PDF</button>
-                                <p id="no-pdf-msg" class="mt-2 text-xs text-stone-400">No drawing uploaded</p>
+                                <p id="no-pdf-msg" class="mt-2 text-xs text-gray-400 font-mono">No drawing uploaded</p>
                             </div>
                         </div>
                         <div class="mt-6">
-                            <h4 class="text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Notes</h4>
-                            <p id="modal-notes" class="text-sm text-stone-600 bg-stone-50 p-3 rounded-md italic">No
+                            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 font-mono">Notes
+                            </h4>
+                            <p id="modal-notes" class="text-sm text-gray-600 bg-gray-50 p-3 rounded-md italic">No
                                 notes.</p>
                         </div>
                     </div>
@@ -534,60 +582,73 @@
                     <div id="modal-content-edit" class="hidden space-y-4">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-bold text-stone-500 uppercase">Owner</label>
-                                <select id="edit-task-owner" class="w-full border rounded p-2 mt-1"></select>
+                                <label class="block text-xs font-bold text-gray-500 uppercase font-mono">Owner</label>
+                                <select id="edit-task-owner"
+                                    class="w-full border rounded p-2 mt-1 focus:ring-2 focus:ring-oem-yellow focus:outline-none"></select>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-stone-500 uppercase">Designed By</label>
-                                <select id="edit-task-designer" class="w-full border rounded p-2 mt-1"></select>
+                                <label class="block text-xs font-bold text-gray-500 uppercase font-mono">Designed
+                                    By</label>
+                                <select id="edit-task-designer"
+                                    class="w-full border rounded p-2 mt-1 focus:ring-2 focus:ring-oem-yellow focus:outline-none"></select>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-stone-500 uppercase">Status</label>
-                                <select id="edit-task-status" class="w-full border rounded p-2 mt-1">
+                                <label class="block text-xs font-bold text-gray-500 uppercase font-mono">Status</label>
+                                <select id="edit-task-status"
+                                    class="w-full border rounded p-2 mt-1 focus:ring-2 focus:ring-oem-yellow focus:outline-none">
                                     <option>Not Started</option>
                                     <option>In Progress</option>
                                     <option>Completed</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-stone-500 uppercase">Material</label>
-                                <input type="text" id="edit-task-material" class="w-full border rounded p-2 mt-1">
+                                <label
+                                    class="block text-xs font-bold text-gray-500 uppercase font-mono">Material</label>
+                                <input type="text" id="edit-task-material"
+                                    class="w-full border rounded p-2 mt-1 focus:ring-2 focus:ring-oem-yellow focus:outline-none">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-stone-500 uppercase">Tool</label>
-                                <input type="text" id="edit-task-tool" class="w-full border rounded p-2 mt-1">
+                                <label class="block text-xs font-bold text-gray-500 uppercase font-mono">Tool</label>
+                                <input type="text" id="edit-task-tool"
+                                    class="w-full border rounded p-2 mt-1 focus:ring-2 focus:ring-oem-yellow focus:outline-none">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-stone-500 uppercase">Quantity</label>
-                                <input type="number" id="edit-task-qty" class="w-full border rounded p-2 mt-1">
+                                <label
+                                    class="block text-xs font-bold text-gray-500 uppercase font-mono">Quantity</label>
+                                <input type="number" id="edit-task-qty"
+                                    class="w-full border rounded p-2 mt-1 focus:ring-2 focus:ring-oem-yellow focus:outline-none">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-stone-500 uppercase">Due Date</label>
-                                <input type="date" id="edit-task-due" class="w-full border rounded p-2 mt-1">
+                                <label class="block text-xs font-bold text-gray-500 uppercase font-mono">Due
+                                    Date</label>
+                                <input type="date" id="edit-task-due"
+                                    class="w-full border rounded p-2 mt-1 focus:ring-2 focus:ring-oem-yellow focus:outline-none">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-stone-500 uppercase">Google Drive
+                                <label class="block text-xs font-bold text-gray-500 uppercase font-mono">Google Drive
                                     Link</label>
                                 <input type="url" id="edit-task-link" placeholder="https://drive.google.com/..."
-                                    class="w-full border rounded p-2 mt-1 text-sm">
-                                <p class="text-xs text-stone-400 mt-1">Paste the shareable Google Drive link to your PDF
+                                    class="w-full border rounded p-2 mt-1 text-sm focus:ring-2 focus:ring-oem-yellow focus:outline-none">
+                                <p class="text-xs text-gray-400 mt-1 font-mono">Paste the shareable Google Drive link to
+                                    your PDF
                                 </p>
                             </div>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-stone-500 uppercase">Notes</label>
-                            <textarea id="edit-task-notes" class="w-full border rounded p-2 mt-1 h-24"></textarea>
+                            <label class="block text-xs font-bold text-gray-500 uppercase font-mono">Notes</label>
+                            <textarea id="edit-task-notes"
+                                class="w-full border rounded p-2 mt-1 h-24 focus:ring-2 focus:ring-oem-yellow focus:outline-none"></textarea>
                         </div>
-                        <div class="flex justify-between pt-4 border-t border-stone-100">
+                        <div class="flex justify-between pt-4 border-t border-gray-100">
                             <button onclick="app.deleteTask()"
-                                class="text-red-500 hover:text-red-700 text-sm font-bold flex items-center gap-1">
+                                class="text-red-500 hover:text-red-700 text-sm font-bold flex items-center gap-1 font-mono">
                                 <span>&#128465;</span> Delete Task
                             </button>
                             <div class="flex gap-3">
                                 <button onclick="app.toggleEditMode(false)"
-                                    class="text-stone-500 hover:text-stone-700 text-sm font-medium">Cancel</button>
+                                    class="text-gray-500 hover:text-gray-700 text-sm font-medium font-mono">Cancel</button>
                                 <button onclick="app.saveTaskEdit()"
-                                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-medium shadow-sm">Save
+                                    class="bg-oem-blue hover:bg-blue-800 text-white px-4 py-2 rounded text-sm font-bold shadow-sm font-mono">Save
                                     Changes</button>
                             </div>
                         </div>
@@ -1031,7 +1092,7 @@
 
             createTaskCard: (task, isPool) => {
                 const card = document.createElement('div');
-                const statusColor = task.status === 'Completed' ? 'bg-emerald-500' : (task.status === 'In Progress' ? 'bg-amber-500' : 'bg-stone-300');
+                const statusColor = task.status === 'Completed' ? 'bg-emerald-500' : (task.status === 'In Progress' ? 'bg-oem-yellow' : 'bg-gray-300');
 
                 // Check if task is overdue
                 let isOverdue = false;
@@ -1042,46 +1103,46 @@
                     today.setHours(0, 0, 0, 0);
                     isOverdue = dueDate < today;
                     const formatted = dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    dueDateDisplay = `<span class="text-xs ${isOverdue ? 'text-red-600 font-bold' : 'text-stone-400'}">Due: ${formatted}</span>`;
+                    dueDateDisplay = `<span class="text-xs font-mono ${isOverdue ? 'text-red-600 font-bold' : 'text-gray-400'}">Due: ${formatted}</span>`;
                 }
 
                 // Border color: overdue takes priority
                 let borderClass;
                 if (isPool) {
-                    borderClass = 'border-l-4 border-l-stone-400';
+                    borderClass = 'border-l-4 border-l-gray-400';
                 } else if (isOverdue) {
                     borderClass = 'border-l-4 border-l-red-500';
                 } else if (task.status === 'Completed') {
                     borderClass = 'border-l-4 border-l-emerald-500';
                 } else if (task.status === 'In Progress') {
-                    borderClass = 'border-l-4 border-l-amber-500';
+                    borderClass = 'border-l-4 border-l-oem-yellow';
                 } else {
-                    borderClass = 'border-l-4 border-l-stone-300';
+                    borderClass = 'border-l-4 border-l-gray-300';
                 }
 
                 // Quick status toggle for owned tasks
                 const statusToggle = !isPool ? `
                     <select onchange="event.stopPropagation(); app.updateStatus('${task.id}', this.value)" 
-                            class="text-xs border border-stone-200 rounded px-2 py-1 bg-white cursor-pointer focus:ring-2 focus:ring-red-500 focus:outline-none">
+                            class="text-xs border border-gray-200 rounded px-2 py-1 bg-white cursor-pointer focus:ring-2 focus:ring-oem-yellow focus:outline-none font-mono">
                         <option value="Not Started" ${task.status === 'Not Started' ? 'selected' : ''}>Not Started</option>
                         <option value="In Progress" ${task.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
                         <option value="Completed" ${task.status === 'Completed' ? 'selected' : ''}>Completed</option>
                     </select>
                 ` : '';
 
-                card.className = `p-4 rounded-lg border border-stone-200 bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer flex justify-between items-center group ${borderClass}`;
+                card.className = `p-4 rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer flex justify-between items-center group ${borderClass}`;
                 card.innerHTML = `
                     <div class="flex-1">
                         <div class="flex items-center gap-2 mb-1">
-                            <span class="text-xs font-bold text-stone-400 uppercase">${task.subteam}</span>
+                            <span class="text-xs font-bold text-gray-400 uppercase font-mono">${task.subteam}</span>
                             ${!isPool ? `<span class="w-2 h-2 rounded-full ${statusColor}"></span>` : ''}
                             ${dueDateDisplay}
                         </div>
-                        <h4 class="text-stone-800 font-semibold group-hover:text-red-600 transition-colors">${task.name}</h4>
+                        <h4 class="text-black font-bold group-hover:text-oem-blue transition-colors font-heading">${task.name}</h4>
                     </div>
                     <div class="flex items-center gap-2">
                         ${statusToggle}
-                        ${isPool ? `<button class="text-xs bg-stone-100 hover:bg-stone-200 text-stone-600 px-3 py-1 rounded font-medium transition-colors" onclick="event.stopPropagation(); app.pickupTask('${task.id}')">Pick Up</button>` : `<button class="text-xs bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1 rounded font-medium transition-colors" onclick="event.stopPropagation(); app.dropTask('${task.id}')">Drop</button>`}
+                        ${isPool ? `<button class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1 rounded font-bold uppercase tracking-wide transition-colors font-mono" onclick="event.stopPropagation(); app.pickupTask('${task.id}')">Pick Up</button>` : `<button class="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1 rounded font-bold uppercase tracking-wide transition-colors font-mono" onclick="event.stopPropagation(); app.dropTask('${task.id}')">Drop</button>`}
                     </div>
                 `;
                 card.onclick = (e) => { if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'SELECT') app.openModal(task.id); };
@@ -1157,16 +1218,16 @@
                 tbody.innerHTML = '';
                 filteredTasks.forEach(task => {
                     const row = document.createElement('tr');
-                    row.className = "hover:bg-stone-50 transition-colors cursor-pointer";
+                    row.className = "hover:bg-gray-50 transition-colors cursor-pointer";
                     row.onclick = () => app.openModal(task.id);
                     const statusClass = task.status === 'Completed' ? 'status-pill-completed' : (task.status === 'In Progress' ? 'status-pill-progress' : 'status-pill-todo');
 
                     row.innerHTML = `
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-stone-900">${task.name}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-stone-500">${task.owner || '<span class="italic text-stone-300">Unassigned</span>'}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-stone-500">${task.designer || '<span class="italic text-stone-300">Unknown</span>'}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full border ${statusClass}">${task.status}</span></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><span class="text-stone-400 hover:text-red-600">View</span></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-black font-heading">${task.name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">${task.owner || '<span class="italic text-gray-300">Unassigned</span>'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">${task.designer || '<span class="italic text-gray-300">Unknown</span>'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2 inline-flex text-xs leading-5 font-bold rounded-full border uppercase tracking-wider ${statusClass}">${task.status}</span></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><span class="text-gray-400 hover:text-oem-blue font-mono">View</span></td>
                     `;
                     tbody.appendChild(row);
                 });
@@ -1180,7 +1241,7 @@
                     const poolTasks = app.tasks.filter(t => !t.owner); // Show all open tasks
 
                     if (poolTasks.length === 0) {
-                        poolContainer.innerHTML = '<p class="text-stone-400 col-span-3 text-center italic py-4">No open tasks available.</p>';
+                        poolContainer.innerHTML = '<p class="text-gray-400 col-span-3 text-center italic py-4 font-mono">No open tasks available.</p>';
                     } else {
                         poolTasks.forEach(task => {
                             poolContainer.appendChild(app.createTaskCard(task, true));
@@ -1217,22 +1278,22 @@
                     item.className = "px-4 py-3 bg-white flex justify-between items-center group/item";
 
                     const isLead = m.role === 'lead';
-                    const leadBadge = isLead ? '<span class="ml-2 text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">Lead</span>' : '';
+                    const leadBadge = isLead ? '<span class="ml-2 text-[10px] bg-oem-yellow bg-opacity-20 text-yellow-800 border border-oem-yellow px-2 py-0.5 rounded-full uppercase font-bold tracking-wider font-mono">Lead</span>' : '';
 
                     item.innerHTML = `
                         <div>
                             <div class="flex items-center">
-                                <p class="text-sm font-medium text-stone-900">${m.name}</p>
+                                <p class="text-sm font-bold text-black font-heading">${m.name}</p>
                                 ${leadBadge}
                             </div>
-                            <p class="text-xs text-stone-500">${m.subteam}</p>
+                            <p class="text-xs text-gray-500 font-mono">${m.subteam}</p>
                         </div>
                         <div class="flex gap-2 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                             <button onclick="app.toggleMemberRole('${m.name}')" class="text-xs font-semibold ${isLead ? 'text-stone-400 hover:text-stone-600' : 'text-stone-400 hover:text-red-600'}">
+                             <button onclick="app.toggleMemberRole('${m.name}')" class="text-xs font-semibold font-mono uppercase ${isLead ? 'text-gray-400 hover:text-gray-600' : 'text-gray-400 hover:text-oem-blue'}">
                                 ${isLead ? 'Demote' : 'Make Lead'}
                              </button>
-                             <div class="w-px bg-stone-200"></div>
-                             <button onclick="app.removeMember('${m.name}')" class="text-stone-300 hover:text-red-600 text-xs font-semibold">Remove</button>
+                             <div class="w-px bg-gray-200"></div>
+                             <button onclick="app.removeMember('${m.name}')" class="text-gray-300 hover:text-red-600 text-xs font-semibold font-mono uppercase">Remove</button>
                         </div>
                     `;
                     list.appendChild(item);
@@ -1279,7 +1340,7 @@
                             type: 'doughnut',
                             data: {
                                 labels: ['Completed', 'In Progress', 'Not Started'],
-                                datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#10b981', '#f59e0b', '#e7e5e4'], borderWidth: 0 }]
+                                datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#10b981', '#f7af1d', '#e5e7eb'], borderWidth: 0 }]
                             },
                             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
                         });
@@ -1296,7 +1357,7 @@
                     if (app.charts.status) app.charts.status.destroy();
                     app.charts.status = new Chart(ctxStatus, {
                         type: 'doughnut',
-                        data: { labels: Object.keys(statusCounts), datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#10b981', '#f59e0b', '#e7e5e4'], borderWidth: 0 }] },
+                        data: { labels: Object.keys(statusCounts), datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#10b981', '#f7af1d', '#e5e7eb'], borderWidth: 0 }] },
                         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
                     });
                 }
@@ -1497,8 +1558,8 @@
                     app.styleSelect(statusContainer.querySelector('select'), task.status);
                 } else {
                     // Render Read-Only Badge
-                    const badgeClass = task.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : (task.status === 'In Progress' ? 'bg-amber-100 text-amber-800' : 'bg-stone-100 text-stone-600');
-                    statusContainer.innerHTML = `<span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold uppercase tracking-wide ${badgeClass}">${task.status}</span>`;
+                    const badgeClass = task.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' : (task.status === 'In Progress' ? 'bg-oem-yellow bg-opacity-20 text-yellow-800' : 'bg-oem-light text-oem-dark');
+                    statusContainer.innerHTML = `<span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-bold uppercase tracking-wide font-mono ${badgeClass}">${task.status}</span>`;
                 }
 
                 // Show modal
@@ -1616,8 +1677,8 @@
                 selectEl.className = 'select-pill transition-colors shadow-sm';
 
                 if (status === 'Completed') selectEl.classList.add('bg-emerald-100', 'text-emerald-800', 'focus:ring-emerald-400');
-                else if (status === 'In Progress') selectEl.classList.add('bg-amber-100', 'text-amber-800', 'focus:ring-amber-400');
-                else selectEl.classList.add('bg-stone-100', 'text-stone-600', 'focus:ring-stone-400');
+                else if (status === 'In Progress') selectEl.classList.add('bg-oem-yellow', 'bg-opacity-20', 'text-yellow-800', 'focus:ring-oem-yellow');
+                else selectEl.classList.add('bg-oem-light', 'text-oem-dark', 'focus:ring-gray-400');
             }
         };
 
